@@ -89,7 +89,7 @@ Para solucionar isso, o CyberSentinel passou por um ajuste fino (fine-tuning):
 - **Método de Otimização:** **QLoRA (Quantized Low-Rank Adaptation)** com precisão de 4 bits. O treinamento otimizou os pesos das matrizes de atenção e perceptrons multicamadas (`target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]`) com rank `r=16` e fator de escala `alpha=16`.
 - **Exportação GGUF:** O script funde os adaptadores LoRA aprendidos de cibersegurança com o modelo base e exporta um arquivo `.gguf` quantizado em 4 bits (`q4_k_m`), que permite executar a inferência de forma leve em qualquer processador (CPU) comum sem necessitar de placas de vídeo (GPU).
 
-> 💡 O script de fine-tuning adaptado e comentado para execução no Google Colab está localizado no diretório: `training/cybersentinel_finetune.py`.
+> 💡 O notebook de fine-tuning adaptado para execução no Google Colab está localizado em: [cybersentinel_finetune.ipynb](file:///C:/Users/SnyX/antigravity/proud-noether/training/cybersentinel_finetune.ipynb) (com a versão script correspondente em [ai_studio_code_(1).py](file:///C:/Users/SnyX/antigravity/proud-noether/ai_studio_code_(1).py)).
 
 ---
 
@@ -103,32 +103,51 @@ A interface web foi desenvolvida sob medida com uma identidade visual moderna de
 
 ---
 
-## 🚀 Instruções para Execução Local (Docker)
+## 🚀 Instruções para Execução Local
 
-### Pré-requisitos
-Certifique-se de ter instalado em sua máquina:
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) rodando e com o serviço ativado.
+Você pode rodar o **CyberSentinel** de duas maneiras. A forma **nativa via Python (Sem Docker)** é a recomendada para sistemas Windows convencionais ou modificados (debloated) que não possuam suporte à virtualização (WSL2/Hyper-V).
 
-### Inicialização Rápida no Windows
+---
+
+### 💻 Método 1: Execução Nativa via Python (Recomendado - Sem Docker)
+
+Este método necessita apenas que o Python esteja instalado localmente na máquina. O backend FastAPI servirá automaticamente o frontend na mesma porta (`8000`).
+
+#### **Pré-requisitos**
+1. Ter o **[Python (versão 3.10, 3.11 ou 3.12)](https://www.python.org/downloads/)** instalado.
+2. Certifique-se de marcar a caixa **"Add Python to PATH"** durante a instalação.
+
+#### **Inicialização Rápida no Windows**
 1. Extraia o projeto.
-2. Dê um duplo clique no arquivo `setup.bat` localizado na raiz do projeto.
-3. O script irá verificar as configurações do Docker e executar os containers.
-4. *Nota: Na primeira inicialização, o Docker baixará automaticamente o modelo padrão GGUF de ~2GB do HuggingFace e compilará o interpretador llama-cpp-python. Isso pode levar alguns minutos dependendo do seu hardware e internet.*
-5. Abra o navegador em: **`http://localhost`** para testar!
+2. Dê um duplo clique no arquivo **`start_local.bat`** na raiz do projeto.
+3. O script irá criar um ambiente virtual (`venv`), atualizar o pip, instalar as dependências necessárias e baixar automaticamente o modelo base GGUF (~2GB) do HuggingFace se não estiver presente.
+4. O navegador abrirá automaticamente em: 👉 **`http://localhost:8000`**
 
-### Inicialização Manual (Qualquer OS - Linux / macOS)
-Caso esteja em outro sistema operacional, abra o terminal na pasta raiz do projeto e execute:
+---
 
+### 🐳 Método 2: Execução via Docker (Alternativo)
+
+Se a sua máquina possuir suporte a containers e o **Docker Desktop** estiver em execução, você pode usar a orquestração multi-container (Nginx no frontend + FastAPI no backend).
+
+#### **Inicialização Rápida no Windows**
+1. Dê um duplo clique no arquivo **`setup.bat`** na raiz do projeto.
+2. O Docker compilará as imagens e subirá o frontend na porta `80` e o backend na porta `8000`.
+3. Acesse em seu navegador: 👉 **`http://localhost`**
+
+#### **Inicialização Manual (Qualquer OS - Linux / macOS)**
+Abra o terminal na pasta raiz do projeto e execute:
 ```bash
-# Subir os containers do backend e frontend em segundo plano
 docker-compose up --build -d
 ```
+Acesse `http://localhost` no navegador.
 
-Após a inicialização concluir, acesse `http://localhost` em seu navegador. O painel da API FastAPI estará disponível para consultas em `http://localhost:8000/docs`.
+---
 
-### Utilizando seu modelo fine-tune do Colab
-Se você executou o notebook de fine-tuning e gerou seu próprio arquivo GGUF:
-1. Pare os containers com `docker-compose down`.
-2. Pegue o arquivo `.gguf` gerado no Colab e renomeie-o para `model.gguf`.
-3. Substitua o arquivo existente na pasta local `backend/models/model.gguf`.
-4. Inicie o Docker novamente com `docker-compose up -d`. O Docker usará instantaneamente o seu modelo customizado!
+### 🔄 Utilizando seu modelo fine-tune do Colab
+
+Se você executou o notebook de fine-tuning no Google Colab e obteve o seu próprio modelo personalizado:
+1. Feche o servidor (pressione `Ctrl + C` no terminal do Python ou execute `docker-compose down` se usou o Docker).
+2. Pegue o arquivo `.gguf` gerado no Colab e renomeie-o para **`model.gguf`**.
+3. Mova/substitua o arquivo antigo na pasta local: **`backend/models/model.gguf`**.
+4. Inicie o sistema novamente (dando duplo clique em `start_local.bat` ou `setup.bat`). O CyberSentinel usará imediatamente a sua IA ajustada!
+

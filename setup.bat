@@ -11,14 +11,14 @@ echo.
 
 :: Verifica se o Docker esta instalado e rodando
 docker info >nul 2>&1
-if %errorlevel% neq 0 (
-    color 0C
-    echo [ERRO] O Docker nao parece estar instalado ou em execucao.
-    echo Certifique-se de inicializar o Docker Desktop e tente novamente.
-    echo.
-    pause
-    exit /b 1
-)
+if %errorlevel% == 0 goto docker_ok
+echo [AVISO] O Docker nao foi detectado ou nao esta em execucao.
+echo Como alternativa, iremos iniciar no modo NATIVO em Python (sem Docker)...
+echo.
+timeout /t 3 >nul
+call start_local.bat
+exit /b 0
+:docker_ok
 
 echo [INFO] Docker detectado e rodando com sucesso.
 echo [INFO] Criando diretorios locais necessarios...
@@ -28,7 +28,7 @@ echo.
 echo =====================================================================
 echo [ATENCAO] Na primeira execucao, o Docker ira:
 echo 1. Compilar o motor de inferencia llama-cpp-python para CPU.
-echo 2. Baixar automaticamente o modelo base Qwen-3B-Instruct GGUF (2GB).
+echo 2. Baixar automaticamente o modelo base Qwen-3.5-2B GGUF (1.3GB).
 echo.
 echo Isso pode levar de 5 a 15 minutos dependendo da sua conexao e hardware.
 echo Nas proximas execucoes o carregamento sera instantaneo.

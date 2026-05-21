@@ -11,7 +11,7 @@
     <!-- FontAwesome para Ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Estilo Customizado -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.0.1">
 </head>
 <body>
     <div class="app-container">
@@ -63,6 +63,9 @@
                     <p>Insira logs brutos ou alertas para gerar um parecer de segurança especializado com base no modelo fine-tuned.</p>
                 </div>
                 <div class="api-address">
+                    <button id="btn-compare-toggle" class="btn-secondary compare-btn">
+                        <i class="fa-solid fa-columns"></i> <span>Comparar Modelos</span>
+                    </button>
                     <span class="api-label">Endpoint:</span>
                     <input type="text" id="api-url-input" value="http://localhost:8000" placeholder="API URL">
                 </div>
@@ -162,8 +165,71 @@
                             <p class="small-text">O parecer detalhado contendo a Classificação, Mapeamento MITRE ATT&CK, Análise de Impacto e Plano de Ação será exibido aqui.</p>
                         </div>
 
-                        <!-- Renderização do Markdown -->
-                        <div id="output-content" class="markdown-content hidden"></div>
+                        <!-- Modo Individual -->
+                        <div id="single-model-output" class="single-output-container">
+                            <!-- Raciocínio da IA (Collapsible accordion-style box) -->
+                            <div id="thinking-container" class="thinking-container hidden">
+                                <div class="thinking-header" id="btn-toggle-thinking">
+                                    <span class="thinking-title">
+                                        <i class="fa-solid fa-brain fa-spin-slow"></i>
+                                        <span id="thinking-status-text">Pensando...</span>
+                                    </span>
+                                    <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                                </div>
+                                <div class="thinking-content-wrapper">
+                                    <div class="thinking-content" id="thinking-content">
+                                        <!-- O processo de raciocínio entra aqui -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Renderização do Markdown -->
+                            <div id="output-content" class="markdown-content hidden"></div>
+                        </div>
+
+                        <!-- Modo Comparativo Lado a Lado -->
+                        <div id="compare-model-output" class="compare-output-container hidden">
+                            <!-- Coluna Esquerda: Qwen Nativo -->
+                            <div class="compare-col" id="col-nativo">
+                                <div class="compare-col-header">
+                                    <span><i class="fa-solid fa-microchip"></i> Qwen 3.5 Nativo (Base)</span>
+                                    <span id="execution-tag-nativo" class="execution-tag hidden">0.00s</span>
+                                </div>
+                                <div id="thinking-container-nativo" class="thinking-container hidden">
+                                    <div class="thinking-header" id="btn-toggle-thinking-nativo">
+                                        <span class="thinking-title">
+                                            <i class="fa-solid fa-brain fa-spin-slow"></i>
+                                            <span id="thinking-status-text-nativo">Pensando...</span>
+                                        </span>
+                                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                                    </div>
+                                    <div class="thinking-content-wrapper">
+                                        <div class="thinking-content" id="thinking-content-nativo"></div>
+                                    </div>
+                                </div>
+                                <div id="output-content-nativo" class="markdown-content hidden"></div>
+                            </div>
+
+                            <!-- Coluna Direita: CyberSentinel Fine-tuned -->
+                            <div class="compare-col" id="col-finetuned">
+                                <div class="compare-col-header">
+                                    <span><i class="fa-solid fa-shield-halved text-cyan"></i> CyberSentinel (Fine-tuned)</span>
+                                    <span id="execution-tag-finetuned" class="execution-tag hidden">0.00s</span>
+                                </div>
+                                <div id="thinking-container-finetuned" class="thinking-container hidden">
+                                    <div class="thinking-header" id="btn-toggle-thinking-finetuned">
+                                        <span class="thinking-title">
+                                            <i class="fa-solid fa-brain fa-spin-slow"></i>
+                                            <span id="thinking-status-text-finetuned">Pensando...</span>
+                                        </span>
+                                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                                    </div>
+                                    <div class="thinking-content-wrapper">
+                                        <div class="thinking-content" id="thinking-content-finetuned"></div>
+                                    </div>
+                                </div>
+                                <div id="output-content-finetuned" class="markdown-content hidden"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -186,7 +252,7 @@
                     <li><strong>Sensors (Sensores):</strong> Entrada de logs textuais, contexto organizacional e histórico de alertas.</li>
                 </ul>
                 <h4>Pipeline de Treinamento</h4>
-                <p>O modelo base <strong>Qwen-3B-Instruct</strong> foi ajustado via **Fine-tuning (QLoRA)** no Google Colab T4 com dados de incidentes reais de cibersegurança do dataset <strong>AttackQA</strong>. O modelo resultante foi exportado para GGUF em 4 bits, otimizando o consumo de CPU local no Docker.</p>
+                <p>O modelo base <strong>Qwen3.5-2B</strong> foi ajustado via **Fine-tuning (QLoRA)** no Google Colab T4 com dados de incidentes reais de cibersegurança do dataset <strong>AttackQA</strong>. O modelo resultante foi exportado para GGUF em 4 bits, otimizando o consumo de CPU local.</p>
             </div>
         </div>
     </div>
@@ -195,6 +261,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lógica da Interface -->
-    <script src="app.js"></script>
+    <script src="app.js?v=1.0.1"></script>
 </body>
 </html>

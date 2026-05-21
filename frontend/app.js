@@ -16,6 +16,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCopyReport = document.getElementById('btn-copy-report');
     const executionTag = document.getElementById('execution-tag');
     
+    // Elementos de Raciocínio (Thinking)
+    const thinkingContainer = document.getElementById('thinking-container');
+    const thinkingContent = document.getElementById('thinking-content');
+    const thinkingStatusText = document.getElementById('thinking-status-text');
+    const btnToggleThinking = document.getElementById('btn-toggle-thinking');
+    
+    // Botão e Containers de Comparação Lado a Lado
+    const btnCompareToggle = document.getElementById('btn-compare-toggle');
+    const singleModelOutput = document.getElementById('single-model-output');
+    const compareModelOutput = document.getElementById('compare-model-output');
+    
+    // Elementos Qwen Nativo
+    const thinkingContainerNativo = document.getElementById('thinking-container-nativo');
+    const thinkingContentNativo = document.getElementById('thinking-content-nativo');
+    const thinkingStatusTextNativo = document.getElementById('thinking-status-text-nativo');
+    const btnToggleThinkingNativo = document.getElementById('btn-toggle-thinking-nativo');
+    const outputContentNativo = document.getElementById('output-content-nativo');
+    const executionTagNativo = document.getElementById('execution-tag-nativo');
+    
+    // Elementos CyberSentinel (Finetuned)
+    const thinkingContainerFinetuned = document.getElementById('thinking-container-finetuned');
+    const thinkingContentFinetuned = document.getElementById('thinking-content-finetuned');
+    const thinkingStatusTextFinetuned = document.getElementById('thinking-status-text-finetuned');
+    const btnToggleThinkingFinetuned = document.getElementById('btn-toggle-thinking-finetuned');
+    const outputContentFinetuned = document.getElementById('output-content-finetuned');
+    const executionTagFinetuned = document.getElementById('execution-tag-finetuned');
+    
     // Métricas
     const metricCountEl = document.getElementById('metric-count');
     const metricTimeEl = document.getElementById('metric-time');
@@ -27,6 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Templates
     const templateButtons = document.querySelectorAll('.btn-template');
+
+    // === ESTADO DE COMPARAÇÃO ===
+    let isCompareMode = false;
 
     // === ESTADO GLOBAL DO APP ===
     let totalAnalyzed = 0;
@@ -168,29 +198,66 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
         });
     });
 
-    // === ENVIAR REQUISIÇÃO DE ANÁLISE ===
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (!isConnected) {
-            alert('Erro: O servidor da API do CyberSentinel está desconectado. Certifique-se de que o Docker Backend está rodando.');
-            return;
+    // Toggle para o acordeão do raciocínio
+    btnToggleThinking.addEventListener('click', () => {
+        thinkingContainer.classList.toggle('active');
+    });
+
+    // Toggle do acordeão nativo
+    btnToggleThinkingNativo.addEventListener('click', () => {
+        thinkingContainerNativo.classList.toggle('active');
+    });
+
+    // Toggle do acordeão finetuned
+    btnToggleThinkingFinetuned.addEventListener('click', () => {
+        thinkingContainerFinetuned.classList.toggle('active');
+    });
+
+    // Toggle Comparação Lado a Lado
+    btnCompareToggle.addEventListener('click', () => {
+        isCompareMode = !isCompareMode;
+        if (isCompareMode) {
+            btnCompareToggle.classList.add('active');
+            singleModelOutput.classList.add('hidden');
+            compareModelOutput.classList.remove('hidden');
+            
+            // Oculta botões do modo individual
+            btnCopyReport.classList.add('hidden');
+            executionTag.classList.add('hidden');
+        } else {
+            btnCompareToggle.classList.remove('active');
+            singleModelOutput.classList.remove('hidden');
+            compareModelOutput.classList.add('hidden');
         }
+        
+        // Reseta placeholder
+        outputPlaceholder.classList.remove('hidden');
+        
+        // Oculta layouts internos
+        thinkingContainer.classList.add('hidden');
+        outputContent.classList.add('hidden');
+        thinkingContainerNativo.classList.add('hidden');
+        outputContentNativo.classList.add('hidden');
+        thinkingContainerFinetuned.classList.add('hidden');
+        outputContentFinetuned.classList.add('hidden');
+    });
 
-        const logContent = logInput.value.trim();
-        const orgContext = contextInput.value.trim();
+    // === FUNÇÃO AUXILIAR DE STREAMING POR MODELO ===
+    async function streamModel(modelName, elements, logContent, orgContext, baseUrl) {
+        const { container, content, status, output, execTag } = elements;
+        const startTime = performance.now();
 
-        if (!logContent) return;
-
-        // Ativa estado de carregamento do botão
-        btnSubmit.disabled = true;
-        submitText.classList.add('hidden');
-        spinner.classList.remove('hidden');
-
-        const baseUrl = apiUrlInput.value.trim();
+        // Reseta estados
+        container.classList.add('hidden');
+        container.classList.remove('active');
+        content.textContent = '';
+        status.textContent = 'Raciocínio da IA: Processando...';
+        output.classList.add('hidden');
+        output.innerHTML = '';
+        execTag.classList.add('hidden');
 
         try {
-            const response = await fetch(`${baseUrl}/analyze`, {
+            const response = await fetch(`${baseUrl}/analyze?model=${modelName}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -202,43 +269,207 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || 'Erro ao processar modelo.');
+                let errText = '';
+                try {
+                    const errData = await response.json();
+                    errText = errData.detail || 'Erro desconhecido.';
+                } catch {
+                    errText = await response.text();
+                }
+                throw new Error(errText || 'Erro ao processar modelo.');
             }
 
-            const data = await response.json();
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
             
-            // Sucesso - Renderizar relatório
-            outputPlaceholder.classList.add('hidden');
-            outputContent.classList.remove('hidden');
-            btnCopyReport.classList.remove('hidden');
-            executionTag.classList.remove('hidden');
-            
-            // Executa conversão de Markdown para HTML usando marked.js
-            outputContent.innerHTML = marked.parse(data.raw_response);
-            executionTag.textContent = `${data.processing_time_sec.toFixed(2)}s`;
+            let fullText = '';
+            let reportStarted = false;
 
-            // Extrai a severidade da resposta para atualizar o gráfico (Regex simples)
-            detectAndAddSeverity(data.raw_response);
+            container.classList.remove('hidden');
+            container.classList.add('active');
 
-            // Atualiza métricas globais
-            totalAnalyzed++;
-            totalTime += data.processing_time_sec;
-            
-            metricCountEl.textContent = totalAnalyzed;
-            metricTimeEl.textContent = `${(totalTime / totalAnalyzed).toFixed(1)}s`;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            // Scroll suave até o relatório gerado
-            outputContent.scrollIntoView({ behavior: 'smooth' });
+                const chunk = decoder.decode(value, { stream: true });
+                fullText += chunk;
+
+                let splitIndex = -1;
+                const thinkEndIndex = fullText.indexOf('</think>');
+                if (thinkEndIndex !== -1) {
+                    splitIndex = thinkEndIndex + 8;
+                } else {
+                    const indicators = ['## 🔴', '## \uD83D\uDD34', '🔴', '## Classificação', '1. ##'];
+                    for (const ind of indicators) {
+                        const idx = fullText.indexOf(ind);
+                        if (idx !== -1) {
+                            if (splitIndex === -1 || idx < splitIndex) {
+                                splitIndex = idx;
+                            }
+                        }
+                    }
+                }
+
+                if (splitIndex !== -1) {
+                    const thinkingPart = fullText.substring(0, splitIndex).trim();
+                    const reportPart = fullText.substring(splitIndex).trim();
+
+                    let cleanThinking = thinkingPart.replace(/<\/?think>/g, '').trim();
+                    cleanThinking = cleanThinking.replace(/^Thinking Process:\s*/i, '');
+
+                    if (cleanThinking) {
+                        content.textContent = cleanThinking;
+                        // Auto-scroll da caixa de pensamento para manter fade e scroll sincronizados
+                        content.scrollTop = content.scrollHeight;
+                    } else {
+                        container.classList.add('hidden');
+                    }
+
+                    if (reportPart) {
+                        if (!reportStarted) {
+                            reportStarted = true;
+                            output.classList.remove('hidden');
+                            container.classList.remove('active');
+                            status.textContent = 'Raciocínio da IA: Concluído (Clique para expandir)';
+                        }
+                        output.innerHTML = marked.parse(reportPart);
+                    }
+                } else {
+                    let cleanThinking = fullText.replace(/<\/?think>/g, '').trim();
+                    cleanThinking = cleanThinking.replace(/^Thinking Process:\s*/i, '');
+                    content.textContent = cleanThinking;
+                    // Auto-scroll
+                    content.scrollTop = content.scrollHeight;
+                }
+            }
+
+            const endTime = performance.now();
+            const totalDurationSec = (endTime - startTime) / 1000;
+
+            const hasReport = fullText.includes('## 🔴') || 
+                              fullText.includes('## \uD83D\uDD34') || 
+                              fullText.includes('🔴') || 
+                              fullText.includes('## Classificação') || 
+                              fullText.includes('</think>');
+
+            if (hasReport) {
+                status.textContent = 'Raciocínio da IA: Concluído (Clique para expandir)';
+            } else {
+                container.classList.add('hidden');
+                output.classList.remove('hidden');
+                output.innerHTML = marked.parse(fullText);
+            }
+
+            execTag.classList.remove('hidden');
+            execTag.textContent = `${totalDurationSec.toFixed(2)}s`;
+
+            return {
+                success: true,
+                duration: totalDurationSec,
+                fullText: output.innerText || fullText
+            };
 
         } catch (error) {
-            alert(`Erro na análise: ${error.message}`);
-        } finally {
-            // Restaura o botão
-            btnSubmit.disabled = false;
-            submitText.classList.remove('hidden');
-            spinner.classList.add('hidden');
+            console.error(`Erro ao rodar modelo ${modelName}:`, error);
+            output.classList.remove('hidden');
+            output.innerHTML = `<div class="error-msg" style="color: #ff3131; padding: 10px; border: 1px dashed rgba(255,49,49,0.3); border-radius: 4px; font-size: 13px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Falha na inferência: ${error.message}
+            </div>`;
+            return {
+                success: false,
+                duration: 0,
+                fullText: ''
+            };
         }
+    }
+
+    // === ENVIAR REQUISIÇÃO DE ANÁLISE ===
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!isConnected) {
+            alert('Erro: O servidor da API do CyberSentinel está desconectado. Certifique-se de que o backend local está rodando.');
+            return;
+        }
+
+        const logContent = logInput.value.trim();
+        const orgContext = contextInput.value.trim();
+
+        if (!logContent) return;
+
+        // Reseta estado do placeholder
+        outputPlaceholder.classList.add('hidden');
+
+        // Ativa estado de carregamento do botão
+        btnSubmit.disabled = true;
+        submitText.classList.add('hidden');
+        spinner.classList.remove('hidden');
+
+        const baseUrl = apiUrlInput.value.trim();
+
+        if (!isCompareMode) {
+            // === MODO INDIVIDUAL ===
+            const result = await streamModel('finetuned', {
+                container: thinkingContainer,
+                content: thinkingContent,
+                status: thinkingStatusText,
+                output: outputContent,
+                execTag: executionTag
+            }, logContent, orgContext, baseUrl);
+
+            if (result.success) {
+                btnCopyReport.classList.remove('hidden');
+                
+                // Atualiza métricas
+                detectAndAddSeverity(result.fullText);
+                totalAnalyzed++;
+                totalTime += result.duration;
+                metricCountEl.textContent = totalAnalyzed;
+                metricTimeEl.textContent = `${(totalTime / totalAnalyzed).toFixed(1)}s`;
+
+                outputContent.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            // === MODO COMPARATIVO (Lado a Lado) ===
+            const nativoElements = {
+                container: thinkingContainerNativo,
+                content: thinkingContentNativo,
+                status: thinkingStatusTextNativo,
+                output: outputContentNativo,
+                execTag: executionTagNativo
+            };
+
+            const finetunedElements = {
+                container: thinkingContainerFinetuned,
+                content: thinkingContentFinetuned,
+                status: thinkingStatusTextFinetuned,
+                output: outputContentFinetuned,
+                execTag: executionTagFinetuned
+            };
+
+            // Executa requisições de forma concorrente em background
+            const [nativoRes, finetunedRes] = await Promise.all([
+                streamModel('nativo', nativoElements, logContent, orgContext, baseUrl),
+                streamModel('finetuned', finetunedElements, logContent, orgContext, baseUrl)
+            ]);
+
+            // Atualiza métricas gerais baseando-se no modelo CyberSentinel
+            if (finetunedRes.success) {
+                detectAndAddSeverity(finetunedRes.fullText);
+                totalAnalyzed++;
+                totalTime += finetunedRes.duration;
+                metricCountEl.textContent = totalAnalyzed;
+                metricTimeEl.textContent = `${(totalTime / totalAnalyzed).toFixed(1)}s`;
+            }
+
+            compareModelOutput.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Restaura o botão de submissão
+        btnSubmit.disabled = false;
+        submitText.classList.remove('hidden');
+        spinner.classList.add('hidden');
     });
 
     // === DETECÇÃO DE SEVERIDADE PARA MÉTRICAS ===
