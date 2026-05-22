@@ -139,7 +139,8 @@
     "    dialogo = [\n",
     "        {\"role\": \"system\", \"content\": prompt_sistema},\n",
     "        {\"role\": \"user\", \"content\": f\"Analise a seguinte questão de segurança ou alerta:\\n\\n{pergunta}\"},\n",
-    "        {\"role\": \"assistant\", \"content\": resposta}\n    ]\n",
+    "        {\"role\": \"assistant\", \"content\": resposta}\n",
+    "    ]\n",
     "    return {\"messages\": dialogo}\n",
     "\n",
     "# Realizando a divisão 70/30 no dataset real\n",
@@ -197,7 +198,8 @@
     "    remove_unused_columns = False,\n",
     "    dataset_text_field = \"\",\n",
     "    dataset_kwargs = {\"skip_prepare_dataset\": True},\n",
-    "    max_seq_length = max_seq_length,\n")"
+    "    max_seq_length = max_seq_length\n",
+    ")"
    ]
   },
   {

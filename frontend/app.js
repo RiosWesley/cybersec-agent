@@ -115,7 +115,7 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
                         '#a1a1aa'  // INFO (Zinc)
                     ],
                     borderWidth: 1,
-                    borderColor: '#121215'
+                    borderColor: '#09090c'
                 }]
             },
             options: {
@@ -373,9 +373,43 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
         } catch (error) {
             console.error(`Erro ao rodar modelo ${modelName}:`, error);
             output.classList.remove('hidden');
-            output.innerHTML = `<div class="error-msg" style="color: #ff3131; padding: 10px; border: 1px dashed rgba(255,49,49,0.3); border-radius: 4px; font-size: 13px;">
-                <i class="fa-solid fa-triangle-exclamation"></i> Falha na inferência: ${error.message}
+            
+            let displayError = error.message;
+            let technicalDetails = '';
+            let llamaLogsHtml = '';
+
+            if (displayError.includes('Detalhes técnicos:')) {
+                const parts = displayError.split('Detalhes técnicos:');
+                displayError = parts[0].trim();
+                let techMsg = parts[1].trim();
+
+                if (techMsg.includes('(Detalhes do llama.cpp:')) {
+                    const llamaParts = techMsg.split('(Detalhes do llama.cpp:');
+                    techMsg = llamaParts[0].trim();
+                    const rawLogs = llamaParts[1].replace(/\)$/, '').trim();
+                    if (rawLogs) {
+                        const logLines = rawLogs.split(' | ').map(line => `• ${line}`).join('\n');
+                        llamaLogsHtml = `<div style="margin-top: 10px; background: rgba(0,0,0,0.3); border-left: 3px solid #ff3131; padding: 8px 12px; font-family: 'Courier New', Courier, monospace; font-size: 11px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4; text-align: left; color: #ff8e8e; border-radius: 0 4px 4px 0;">
+<div style="font-weight: bold; margin-bottom: 4px; color: #ff5555; font-family: sans-serif;">[llama.cpp diagnostic log]</div>${logLines}</div>`;
+                    }
+                }
+                
+                technicalDetails = `<div style="margin-top: 6px; font-size: 12px; opacity: 0.9; color: #ffa3a3;">
+                    <strong>Erro Técnico:</strong> ${techMsg}
+                </div>`;
+            }
+
+            output.innerHTML = `<div class="error-msg" style="color: #ff3131; padding: 15px; border: 1px dashed rgba(255,49,49,0.4); border-radius: 6px; font-size: 13px; background: rgba(255,49,49,0.05); text-align: left;">
+                <div style="font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Falha na inferência
+                </div>
+                <div style="margin-top: 8px; color: #ffcccc;">
+                    ${displayError}
+                </div>
+                ${technicalDetails}
+                ${llamaLogsHtml}
             </div>`;
+
             return {
                 success: false,
                 duration: 0,

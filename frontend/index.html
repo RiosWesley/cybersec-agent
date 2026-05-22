@@ -3,126 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberSentinel — Analista SOC Virtual Inteligente</title>
-    <!-- Google Fonts: Editorial Serif, Tech Mono & Clean Sans -->
+    <title>CyberSentinel // SOC Terminal v1.0.3</title>
+    <!-- Google Fonts: Space Mono (Strict tech), Share Tech Mono (Console headers) & Space Grotesk (Futuristic Geometric UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700;900&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- FontAwesome para Ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Estilo Customizado -->
-    <link rel="stylesheet" href="style.css?v=1.0.2">
+    <link rel="stylesheet" href="style.css?v=1.0.4">
 </head>
 <body>
-    <!-- Grain/Noise Overlay e Linhas Assecundárias de Grid Editorial -->
+    <!-- Sutil Overlay de Granulado Digital -->
     <div class="noise-overlay"></div>
-    <div class="editorial-grid-lines">
-        <div class="grid-line-v v1"></div>
-        <div class="grid-line-v v2"></div>
-        <div class="grid-line-h h1"></div>
-    </div>
-
-    <!-- Indicadores Flutuantes de Metadata (Imperfeições Estéticas) -->
-    <div class="floating-metadata meta-top-left">SYS.VER: 4.8.1-BETA // SEC_LEVEL: CLASSIFIED</div>
-    <div class="floating-metadata meta-top-right">COORDS: 45°30'N 73°35'W // LAT_LON</div>
-    <div class="floating-metadata meta-bottom-left">AGENT_SOC: V_01 // GGUF_INF</div>
-    <div class="floating-metadata meta-bottom-right">EST. 2026 // NO_TEMPLATE</div>
 
     <div class="app-container">
-        <!-- Barra Lateral / Logo e Status -->
+        <!-- Barra Lateral: Console Controller -->
         <aside class="sidebar">
             <div class="logo-area">
-                <div class="shield-icon">
-                    <i class="fa-solid fa-shield-halved pulse-glow"></i>
+                <div class="logo-wrapper">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <h1 class="tech-title">CYBER<span>_SENTINEL</span></h1>
                 </div>
-                <div>
-                    <h1 class="serif-title">Cyber<i>Sentinel</i></h1>
-                    <span class="subtitle">Virtual SOC Analyst</span>
-                </div>
+                <span class="subtitle">SYS.SOC // INTEL_CORE_V_01</span>
             </div>
             
             <nav class="nav-menu">
-                <a href="#" class="active"><span class="nav-num-label">01.</span> <i class="fa-solid fa-terminal"></i> Terminal de Análise</a>
-                <a href="#" id="btn-show-about"><span class="nav-num-label">02.</span> <i class="fa-solid fa-circle-info"></i> Sobre o Agente</a>
+                <a href="#" class="active"><span class="cmd-prompt">&gt;</span> terminal_analise</a>
+                <a href="#" id="btn-show-about"><span class="cmd-prompt">&gt;</span> info_agente.log</a>
             </nav>
 
-            <!-- Painel de Status com visual Brutalista -->
+            <!-- Painel de Status com layout BIOS Dump Simplificado -->
             <div class="status-panel">
-                <div class="panel-header">// STATUS_MONITOR</div>
+                <div class="status-panel-header">[ SYSTEM_STATUS ]</div>
                 <div class="status-item">
-                    <span class="label">Modelo GGUF:</span>
-                    <span id="model-status" class="status-indicator loading">Verificando...</span>
+                    <span class="label">&gt; GGUF_LOAD:</span>
+                    <span id="model-status" class="status-indicator loading">checking...</span>
                 </div>
                 <div class="status-item">
-                    <span class="label">Conexão API:</span>
-                    <span id="api-status" class="status-indicator offline">Desconectado</span>
+                    <span class="label">&gt; API_CONN:</span>
+                    <span id="api-status" class="status-indicator offline">disconnected</span>
                 </div>
                 <div class="status-item">
-                    <span class="label">Modo:</span>
-                    <span class="status-value CPU">CPU Local</span>
+                    <span class="label">&gt; CPU_MODE:</span>
+                    <span class="status-value CPU">LOCAL_HOST</span>
                 </div>
             </div>
             
             <div class="footer-sidebar">
-                <p class="mono-tag">[ATV_DUPLA_SOC]</p>
-                <p>Entrega: 22/05/2026</p>
+                <p class="build-tag">BUILD_VER_92.1.25a</p>
+                <p>UNIT_DATE: 22/05/2026</p>
             </div>
         </aside>
 
         <!-- Área Principal -->
         <main class="main-content">
-            <!-- Topbar Editorial -->
+            <!-- Topbar Tech Simplificada -->
             <header class="topbar">
                 <div class="page-title">
-                    <h2>Dashboard de Análise de Incidentes</h2>
-                    <p class="tagline">Insira logs brutos ou alertas para gerar um parecer de segurança especializado com base no modelo fine-tuned.</p>
+                    <h2>_dashboard_analise_incidentes</h2>
+                    <p class="tagline">Console de depuração de segurança para logs brutos e relatórios de inteligência de ameaças.</p>
                 </div>
                 <div class="topbar-actions">
                     <button id="btn-compare-toggle" class="btn-secondary compare-btn">
-                        <i class="fa-solid fa-columns"></i> <span>Comparar Modelos</span>
+                        <i class="fa-solid fa-columns"></i> <span>COMPARE_MODELS</span>
                     </button>
                     <div class="api-address">
-                        <span class="api-label">Endpoint:</span>
-                        <input type="text" id="api-url-input" value="http://localhost:8000" placeholder="API URL">
+                        <span class="api-label">LOCAL_URL:</span>
+                        <input type="text" id="api-url-input" value="http://localhost:8000" placeholder="http://127.0.0.1:8000">
                     </div>
                 </div>
             </header>
 
-            <!-- Grid Assimétrica Editorial -->
+            <!-- Grid Assimétrica Tech Clean -->
             <div class="grid-content">
-                <!-- Painel Esquerdo: Entrada (Ocupa proporção assimétrica) -->
+                
+                <!-- Painel Esquerdo: Entrada -->
                 <section class="card input-card">
                     <div class="card-header">
-                        <span class="card-number-bg">01</span>
-                        <h3><i class="fa-solid fa-code"></i> Entrada de Dados do Incidente</h3>
+                        <h3><span class="header-prefix">//</span> [INPUT_LOG_STREAM]</h3>
+                        <span class="panel-metadata">ID: 0x8FA4</span>
                     </div>
                     <div class="card-body">
                         <!-- Guia de Uso Rápido -->
                         <div class="guideline-panel">
                             <div class="guideline-header">
                                 <i class="fa-solid fa-circle-info"></i>
-                                <span>Guia de Uso do Analista SOC</span>
+                                <span>[GUIDE_INSTRUCTIONS]</span>
                             </div>
                             <div class="guideline-body">
-                                <p><strong>💡 Dica:</strong> Comece clicando em uma das <strong>Simulações Reais</strong> abaixo para carregar um incidente predefinido e ver o formato do parecer gerado pela IA. Depois, sinta-se livre para limpar os campos e colar ou digitar o seu próprio log, CVE ou relato de incidente na área abaixo.</p>
+                                <p>&gt;_ Carregue uma das <strong>Simulações Reais</strong> abaixo para preencher o buffer de logs. Em seguida, clique em Analisar Incidente para disparar a inferência do modelo local fine-tuned.</p>
                             </div>
                         </div>
 
                         <!-- Templates de Teste Rápido -->
                         <div class="templates-area">
-                            <span class="section-label">[ SIMULAR_INCIDENTE // TEMPLATES ]:</span>
+                            <span class="section-label">[ LOAD_PRESETS_TEMPLATES ]</span>
                             <div class="template-buttons">
                                 <button type="button" class="btn-template" data-type="ssh_brute">
-                                    <i class="fa-solid fa-key"></i> SSH Brute Force
+                                    <span class="btn-num">[01]</span> SSH Brute Force
                                 </button>
                                 <button type="button" class="btn-template" data-type="sql_inject">
-                                    <i class="fa-solid fa-database"></i> SQL Injection
+                                    <span class="btn-num">[02]</span> SQL Injection
                                 </button>
                                 <button type="button" class="btn-template" data-type="ddos">
-                                    <i class="fa-solid fa-network-wired"></i> DDoS HTTP Flood
+                                    <span class="btn-num">[03]</span> DDoS HTTP Flood
                                 </button>
                                 <button type="button" class="btn-template" data-type="ransomware">
-                                    <i class="fa-solid fa-file-shield"></i> Ransomware Alert
+                                    <span class="btn-num">[04]</span> Ransomware Alert
                                 </button>
                             </div>
                         </div>
@@ -130,18 +118,18 @@
                         <!-- Formulário de Submissão -->
                         <form id="analysis-form">
                             <div class="form-group">
-                                <label for="log-input">Log Bruto / Alerta / CVE:</label>
-                                <textarea id="log-input" placeholder="Cole o log do firewall, web server, IDS, descrição de incidente ou CVE aqui..." required></textarea>
+                                <label for="log-input">&gt; RAW_LOG_BUFFER_INPUT:</label>
+                                <textarea id="log-input" placeholder="Cole logs de servidores ou detalhes de alertas de segurança para análise no buffer..." required></textarea>
                             </div>
 
                             <div class="form-group">
-                                <label for="context-input">Contexto Organizacional (Opcional):</label>
-                                <input type="text" id="context-input" placeholder="Ex: Servidor crítico de banco de dados financeiro. Setor bancário.">
+                                <label for="context-input">&gt; ORGANIZATIONAL_CONTEXT:</label>
+                                <input type="text" id="context-input" placeholder="Ex: Banco de dados crítico. Servidores expostos na DMZ.">
                             </div>
 
                             <button type="submit" id="btn-submit" class="btn-primary">
-                                <span class="btn-text"><i class="fa-solid fa-brain"></i> Analisar Incidente</span>
-                                <span class="spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i> Processando Modelo...</span>
+                                <span class="btn-text"><i class="fa-solid fa-brain"></i> EXECUTE_MODEL_ANALYSIS</span>
+                                <span class="spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i> RUNNING_INFERENCE...</span>
                             </button>
                         </form>
                     </div>
@@ -150,16 +138,16 @@
                 <!-- Painel Direito: Métricas do Dashboard -->
                 <section class="card metrics-card">
                     <div class="card-header">
-                        <span class="card-number-bg">02</span>
-                        <h3><i class="fa-solid fa-chart-pie"></i> Painel de Métricas</h3>
+                        <h3><span class="header-prefix">//</span> [STATISTICS_TELEMETRY]</h3>
+                        <span class="panel-metadata">ID: 0x93FF</span>
                     </div>
                     <div class="card-body metrics-grid">
                         <div class="metric-box">
-                            <span class="metric-title">[ AMEAÇAS_ANALISADAS ]</span>
+                            <span class="metric-title">[ THREATS_PROCESSED ]</span>
                             <span id="metric-count" class="metric-value">0</span>
                         </div>
                         <div class="metric-box">
-                            <span class="metric-title">[ TEMPO_MÉDIO ]</span>
+                            <span class="metric-title">[ INFERENCE_LATENCY ]</span>
                             <span id="metric-time" class="metric-value">0.0s</span>
                         </div>
                         <div class="chart-container">
@@ -172,20 +160,21 @@
                 <section class="card output-card full-width">
                     <div class="card-header flex-between">
                         <div class="header-title-wrapper">
-                            <span class="card-number-bg">03</span>
-                            <h3><i class="fa-solid fa-receipt"></i> Parecer Técnico CyberSentinel</h3>
+                            <h3><span class="header-prefix">//</span> [ANALYSIS_MATRIX_OUTPUT]</h3>
                         </div>
                         <div class="output-actions">
-                            <button id="btn-copy-report" class="btn-secondary hidden"><i class="fa-solid fa-copy"></i> Copiar Relatório</button>
+                            <button id="btn-copy-report" class="btn-secondary hidden"><i class="fa-solid fa-copy"></i> COPY_REPORT</button>
                             <span id="execution-tag" class="execution-tag hidden">0.00s</span>
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Estado inicial -->
+                        <!-- Estado inicial (Placeholder) -->
                         <div id="output-placeholder" class="output-placeholder-state">
-                            <i class="fa-solid fa-shield-halved placeholder-icon"></i>
-                            <p class="placeholder-main-text">Aguardando submissão de log para análise...</p>
-                            <p class="small-text">O parecer detalhado contendo a Classificação, Mapeamento MITRE ATT&CK, Análise de Impacto e Plano de Ação será exibido aqui.</p>
+                            <div class="terminal-cross-icon">
+                                <span>[!]</span>
+                            </div>
+                            <p class="placeholder-main-text">&gt;_ Awaiting Log Buffer Submission...</p>
+                            <p class="small-text">Insira dados na seção [INPUT_LOG_STREAM] e clique em EXECUTE_MODEL_ANALYSIS. O parecer de cibersegurança contendo o mapeamento MITRE ATT&CK e mitigação será plotado neste console.</p>
                         </div>
 
                         <!-- Modo Individual -->
@@ -195,7 +184,7 @@
                                 <div class="thinking-header" id="btn-toggle-thinking">
                                     <span class="thinking-title">
                                         <i class="fa-solid fa-brain fa-spin-slow"></i>
-                                        <span id="thinking-status-text">Pensando...</span>
+                                        <span id="thinking-status-text">THINKING_PROCESS...</span>
                                     </span>
                                     <i class="fa-solid fa-chevron-down arrow-icon"></i>
                                 </div>
@@ -214,14 +203,14 @@
                             <!-- Coluna Esquerda: Qwen Nativo -->
                             <div class="compare-col" id="col-nativo">
                                 <div class="compare-col-header">
-                                    <span><i class="fa-solid fa-microchip"></i> Qwen 3.5 Nativo (Base)</span>
+                                    <span><i class="fa-solid fa-microchip"></i> [MODEL_BASE: QWEN_NATIVO]</span>
                                     <span id="execution-tag-nativo" class="execution-tag hidden">0.00s</span>
                                 </div>
                                 <div id="thinking-container-nativo" class="thinking-container hidden">
                                     <div class="thinking-header" id="btn-toggle-thinking-nativo">
                                         <span class="thinking-title">
                                             <i class="fa-solid fa-brain fa-spin-slow"></i>
-                                            <span id="thinking-status-text-nativo">Pensando...</span>
+                                            <span id="thinking-status-text-nativo">THINKING...</span>
                                         </span>
                                         <i class="fa-solid fa-chevron-down arrow-icon"></i>
                                     </div>
@@ -235,14 +224,14 @@
                             <!-- Coluna Direita: CyberSentinel Fine-tuned -->
                             <div class="compare-col" id="col-finetuned">
                                 <div class="compare-col-header">
-                                    <span><i class="fa-solid fa-shield-halved text-cyan"></i> CyberSentinel (Finetuned)</span>
+                                    <span><i class="fa-solid fa-shield-halved text-lime"></i> [MODEL_AGENT: CYBERSENTINEL]</span>
                                     <span id="execution-tag-finetuned" class="execution-tag hidden">0.00s</span>
                                 </div>
                                 <div id="thinking-container-finetuned" class="thinking-container hidden">
                                     <div class="thinking-header" id="btn-toggle-thinking-finetuned">
                                         <span class="thinking-title">
                                             <i class="fa-solid fa-brain fa-spin-slow"></i>
-                                            <span id="thinking-status-text-finetuned">Pensando...</span>
+                                            <span id="thinking-status-text-finetuned">THINKING...</span>
                                         </span>
                                         <i class="fa-solid fa-chevron-down arrow-icon"></i>
                                     </div>
@@ -259,23 +248,28 @@
         </main>
     </div>
 
-    <!-- Modal de Sobre -->
+    <!-- Modal de Sobre (Visual Moderno Clean Dark) -->
     <div id="about-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Sobre o CyberSentinel</h3>
+                <h3>CYBERSENTINEL_SYSTEM_INFORMATION</h3>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
-                <h4>Arquitetura PEAS do Agente Inteligente</h4>
+                <h4>[1. AGENT_ARCHITECTURE: PEAS_MATRIX]</h4>
                 <ul>
-                    <li><strong>Performance:</strong> Classificação precisa de severidade, mapeamento rigoroso MITRE ATT&CK e plano acionável de contenção.</li>
-                    <li><strong>Environment (Ambiente):</strong> Logs brutos de firewall, IDS/IPS, Apache/Nginx, relatórios de rede e alertas de CVE.</li>
-                    <li><strong>Actuators (Atuadores):</strong> Interface gráfica do analista SOC, exportação de relatórios estruturados e planos de mitigação.</li>
-                    <li><strong>Sensors (Sensores):</strong> Entrada de logs textuais, contexto organizacional e histórico de alertas.</li>
+                    <li><strong>PERFORMANCE:</strong> Classificação precisa de severidade, mitigação operacional e mapeamento MITRE ATT&CK.</li>
+                    <li><strong>ENVIRONMENT:</strong> Logs brutos de firewall, IDS/IPS, Apache/Nginx, relatórios de rede e CVE.</li>
+                    <li><strong>ACTUATORS:</strong> Console de análise SOC, cópias estruturadas de relatórios e planos de mitigação.</li>
+                    <li><strong>SENSORS:</strong> Buffer textual de incidentes, contexto da organização e logs armazenados.</li>
                 </ul>
-                <h4>Pipeline de Treinamento</h4>
-                <p>O modelo base <strong>Qwen3.5-2B</strong> foi ajustado via **Fine-tuning (QLoRA)** no Google Colab T4 com dados de incidentes reais de cibersegurança do dataset <strong>AttackQA</strong>. O modelo resultante foi exportado para GGUF em 4 bits, otimizando o consumo de CPU local.</p>
+                
+                <h4>[2. TRAINING_PIPELINE_METRICS]</h4>
+                <p>O modelo base <strong>Qwen3.5-2B</strong> foi ajustado via **Fine-tuning QLoRA** no Google Colab T4 utilizando o dataset **AttackQA**. O resultado final foi quantizado para GGUF 4 bits para inferência ágil local em CPU.</p>
+                
+                <div class="bios-footer">
+                    [ CLICK CLOSE TO RUN SYSTEM EXIT ]
+                </div>
             </div>
         </div>
     </div>
@@ -284,6 +278,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lógica da Interface -->
-    <script src="app.js?v=1.0.2"></script>
+    <script src="app.js?v=1.0.4"></script>
 </body>
 </html>

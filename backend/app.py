@@ -1,11 +1,12 @@
 import os
 import time
+import ctypes
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from llama_cpp import Llama
+from llama_cpp import Llama, llama_cpp
 
 app = FastAPI(
     title="CyberSentinel API",
@@ -42,6 +43,33 @@ llms = {
     "finetuned": None
 }
 
+# Dicionário para rastrear a mensagem de erro específica caso o carregamento falhe
+llm_errors = {
+    "nativo": None,
+    "finetuned": None
+}
+
+# Buffer para capturar logs do llama.cpp e ajudar a detalhar falhas de inicialização
+llama_log_buffer = []
+
+def llama_log_callback(level, text, user_data):
+    if text:
+        try:
+            msg = text.decode('utf-8', errors='replace')
+            if len(llama_log_buffer) > 200:
+                llama_log_buffer.pop(0)
+            llama_log_buffer.append(msg)
+        except Exception:
+            pass
+
+# Mantemos a referência do callback viva em escopo global para evitar Garbage Collection crash
+_llama_log_callback_fn = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_char_p, ctypes.c_void_p)(llama_log_callback)
+
+try:
+    llama_cpp.llama_log_set(_llama_log_callback_fn, None)
+except Exception as e:
+    print(f"[WARN] Não foi possível registrar o callback de logs do llama.cpp: {e}")
+
 # Prompt de Sistema do CyberSentinel (Otimizado para manter o raciocínio em português)
 SYSTEM_PROMPT = """Você é o CyberSentinel, um agente inteligente e analista SOC (Security Operations Center) sênior especialista em resposta a incidentes cibernéticos.
 Você analisa logs, descrições de falhas, vulnerabilidades e alertas e fornece análises estruturadas detalhadas.
@@ -56,7 +84,7 @@ Importante:
 3. Todo o relatório final deve ser escrito em português do Brasil."""
 
 def init_llm(model_name: str):
-    global llms
+    global llms, llm_errors, llama_log_buffer
     if llms[model_name] is not None:
         return
         
@@ -72,11 +100,17 @@ def init_llm(model_name: str):
         if os.path.exists(alternative):
             path = alternative
         else:
-            print(f"[ERROR] Modelo {model_name} não encontrado em {path} e sem fallback disponível.")
+            err = f"Arquivo GGUF não encontrado. Caminho principal: {path}."
+            print(f"[ERROR] {err}")
+            llm_errors[model_name] = err
             return
 
     print(f"Carregando o modelo {model_name} a partir de: {path}...")
     start_time = time.time()
+    
+    # Limpa logs anteriores antes de iniciar carregamento
+    llama_log_buffer.clear()
+    
     try:
         # Configurado de forma otimizada para execução em CPU (n_ctx=2048, n_threads=4)
         llms[model_name] = Llama(
@@ -84,11 +118,23 @@ def init_llm(model_name: str):
             n_ctx=2048,
             n_threads=4,
             n_batch=512,
-            verbose=False
+            verbose=True  # Habilita logs para que nosso callback capture detalhes de erros internos
         )
+        llm_errors[model_name] = None
         print(f"Modelo {model_name} carregado com sucesso em {time.time() - start_time:.2f}s!")
+        # Limpa o buffer de log após sucesso para liberar memória
+        llama_log_buffer.clear()
     except Exception as e:
-        print(f"[ERROR] Erro crítico ao carregar o modelo {model_name}: {e}")
+        # Extrai os últimos logs relevantes do llama.cpp
+        recent_logs = [line.strip() for line in llama_log_buffer if line.strip()]
+        last_logs_str = " | ".join(recent_logs[-8:])
+        
+        err_msg = f"Falha interna no motor de inferência llama-cpp-python ao carregar GGUF. Erro: {type(e).__name__}: {str(e)}"
+        if last_logs_str:
+            err_msg += f" (Detalhes do llama.cpp: {last_logs_str})"
+            
+        print(f"[ERROR] {err_msg}")
+        llm_errors[model_name] = err_msg
 
 @app.on_event("startup")
 def startup_event():
@@ -125,9 +171,10 @@ def analyze_log(request: LogAnalysisRequest, model: str = "finetuned"):
     if llms[model] is None:
         init_llm(model)
         if llms[model] is None:
+            err_detail = llm_errors[model] or "Erro indeterminado de inicialização."
             raise HTTPException(
                 status_code=503, 
-                detail=f"O modelo de linguagem '{model}' não pôde ser carregado. Certifique-se de que o arquivo GGUF correspondente está em backend/models/."
+                detail=f"O modelo de linguagem '{model}' não pôde ser carregado. Detalhes técnicos: {err_detail}"
             )
             
     # Prepara a entrada seguindo a estrutura ChatML recomendada para o Qwen/Llama
