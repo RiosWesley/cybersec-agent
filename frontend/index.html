@@ -4,16 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CyberSentinel — Analista SOC Virtual Inteligente</title>
-    <!-- Fontes Modernas -->
+    <!-- Google Fonts: Editorial Serif, Tech Mono & Clean Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700;900&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- FontAwesome para Ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Estilo Customizado -->
-    <link rel="stylesheet" href="style.css?v=1.0.1">
+    <link rel="stylesheet" href="style.css?v=1.0.2">
 </head>
 <body>
+    <!-- Grain/Noise Overlay e Linhas Assecundárias de Grid Editorial -->
+    <div class="noise-overlay"></div>
+    <div class="editorial-grid-lines">
+        <div class="grid-line-v v1"></div>
+        <div class="grid-line-v v2"></div>
+        <div class="grid-line-h h1"></div>
+    </div>
+
+    <!-- Indicadores Flutuantes de Metadata (Imperfeições Estéticas) -->
+    <div class="floating-metadata meta-top-left">SYS.VER: 4.8.1-BETA // SEC_LEVEL: CLASSIFIED</div>
+    <div class="floating-metadata meta-top-right">COORDS: 45°30'N 73°35'W // LAT_LON</div>
+    <div class="floating-metadata meta-bottom-left">AGENT_SOC: V_01 // GGUF_INF</div>
+    <div class="floating-metadata meta-bottom-right">EST. 2026 // NO_TEMPLATE</div>
+
     <div class="app-container">
         <!-- Barra Lateral / Logo e Status -->
         <aside class="sidebar">
@@ -22,18 +36,19 @@
                     <i class="fa-solid fa-shield-halved pulse-glow"></i>
                 </div>
                 <div>
-                    <h1>CyberSentinel</h1>
+                    <h1 class="serif-title">Cyber<i>Sentinel</i></h1>
                     <span class="subtitle">Virtual SOC Analyst</span>
                 </div>
             </div>
             
             <nav class="nav-menu">
-                <a href="#" class="active"><i class="fa-solid fa-terminal"></i> Terminal de Análise</a>
-                <a href="#" id="btn-show-about"><i class="fa-solid fa-circle-info"></i> Sobre o Agente</a>
+                <a href="#" class="active"><span class="nav-num-label">01.</span> <i class="fa-solid fa-terminal"></i> Terminal de Análise</a>
+                <a href="#" id="btn-show-about"><span class="nav-num-label">02.</span> <i class="fa-solid fa-circle-info"></i> Sobre o Agente</a>
             </nav>
 
+            <!-- Painel de Status com visual Brutalista -->
             <div class="status-panel">
-                <div class="panel-header">Status do Sistema</div>
+                <div class="panel-header">// STATUS_MONITOR</div>
                 <div class="status-item">
                     <span class="label">Modelo GGUF:</span>
                     <span id="model-status" class="status-indicator loading">Verificando...</span>
@@ -49,32 +64,36 @@
             </div>
             
             <div class="footer-sidebar">
-                <p>Atividade em Dupla</p>
+                <p class="mono-tag">[ATV_DUPLA_SOC]</p>
                 <p>Entrega: 22/05/2026</p>
             </div>
         </aside>
 
         <!-- Área Principal -->
         <main class="main-content">
-            <!-- Topbar -->
+            <!-- Topbar Editorial -->
             <header class="topbar">
                 <div class="page-title">
-                    <h2><i class="fa-solid fa-gauge-high"></i> Dashboard de Análise de Incidentes</h2>
-                    <p>Insira logs brutos ou alertas para gerar um parecer de segurança especializado com base no modelo fine-tuned.</p>
+                    <h2>Dashboard de Análise de Incidentes</h2>
+                    <p class="tagline">Insira logs brutos ou alertas para gerar um parecer de segurança especializado com base no modelo fine-tuned.</p>
                 </div>
-                <div class="api-address">
+                <div class="topbar-actions">
                     <button id="btn-compare-toggle" class="btn-secondary compare-btn">
                         <i class="fa-solid fa-columns"></i> <span>Comparar Modelos</span>
                     </button>
-                    <span class="api-label">Endpoint:</span>
-                    <input type="text" id="api-url-input" value="http://localhost:8000" placeholder="API URL">
+                    <div class="api-address">
+                        <span class="api-label">Endpoint:</span>
+                        <input type="text" id="api-url-input" value="http://localhost:8000" placeholder="API URL">
+                    </div>
                 </div>
             </header>
 
+            <!-- Grid Assimétrica Editorial -->
             <div class="grid-content">
-                <!-- Painel Esquerdo: Entrada -->
+                <!-- Painel Esquerdo: Entrada (Ocupa proporção assimétrica) -->
                 <section class="card input-card">
                     <div class="card-header">
+                        <span class="card-number-bg">01</span>
                         <h3><i class="fa-solid fa-code"></i> Entrada de Dados do Incidente</h3>
                     </div>
                     <div class="card-body">
@@ -91,7 +110,7 @@
 
                         <!-- Templates de Teste Rápido -->
                         <div class="templates-area">
-                            <span class="section-label">Simular Incidentes (Templates Reais):</span>
+                            <span class="section-label">[ SIMULAR_INCIDENTE // TEMPLATES ]:</span>
                             <div class="template-buttons">
                                 <button type="button" class="btn-template" data-type="ssh_brute">
                                     <i class="fa-solid fa-key"></i> SSH Brute Force
@@ -131,15 +150,16 @@
                 <!-- Painel Direito: Métricas do Dashboard -->
                 <section class="card metrics-card">
                     <div class="card-header">
-                        <h3><i class="fa-solid fa-chart-pie"></i> Painel de Métricas do Analista</h3>
+                        <span class="card-number-bg">02</span>
+                        <h3><i class="fa-solid fa-chart-pie"></i> Painel de Métricas</h3>
                     </div>
                     <div class="card-body metrics-grid">
                         <div class="metric-box">
-                            <span class="metric-title">Ameaças Analisadas</span>
+                            <span class="metric-title">[ AMEAÇAS_ANALISADAS ]</span>
                             <span id="metric-count" class="metric-value">0</span>
                         </div>
                         <div class="metric-box">
-                            <span class="metric-title">Tempo de Resposta (Média)</span>
+                            <span class="metric-title">[ TEMPO_MÉDIO ]</span>
                             <span id="metric-time" class="metric-value">0.0s</span>
                         </div>
                         <div class="chart-container">
@@ -151,7 +171,10 @@
                 <!-- Painel Inferior Largo: Resposta do Agente -->
                 <section class="card output-card full-width">
                     <div class="card-header flex-between">
-                        <h3><i class="fa-solid fa-receipt"></i> Parecer Técnico do CyberSentinel</h3>
+                        <div class="header-title-wrapper">
+                            <span class="card-number-bg">03</span>
+                            <h3><i class="fa-solid fa-receipt"></i> Parecer Técnico CyberSentinel</h3>
+                        </div>
                         <div class="output-actions">
                             <button id="btn-copy-report" class="btn-secondary hidden"><i class="fa-solid fa-copy"></i> Copiar Relatório</button>
                             <span id="execution-tag" class="execution-tag hidden">0.00s</span>
@@ -161,7 +184,7 @@
                         <!-- Estado inicial -->
                         <div id="output-placeholder" class="output-placeholder-state">
                             <i class="fa-solid fa-shield-halved placeholder-icon"></i>
-                            <p>Aguardando submissão de log para análise...</p>
+                            <p class="placeholder-main-text">Aguardando submissão de log para análise...</p>
                             <p class="small-text">O parecer detalhado contendo a Classificação, Mapeamento MITRE ATT&CK, Análise de Impacto e Plano de Ação será exibido aqui.</p>
                         </div>
 
@@ -212,7 +235,7 @@
                             <!-- Coluna Direita: CyberSentinel Fine-tuned -->
                             <div class="compare-col" id="col-finetuned">
                                 <div class="compare-col-header">
-                                    <span><i class="fa-solid fa-shield-halved text-cyan"></i> CyberSentinel (Fine-tuned)</span>
+                                    <span><i class="fa-solid fa-shield-halved text-cyan"></i> CyberSentinel (Finetuned)</span>
                                     <span id="execution-tag-finetuned" class="execution-tag hidden">0.00s</span>
                                 </div>
                                 <div id="thinking-container-finetuned" class="thinking-container hidden">
@@ -261,6 +284,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lógica da Interface -->
-    <script src="app.js?v=1.0.1"></script>
+    <script src="app.js?v=1.0.2"></script>
 </body>
 </html>

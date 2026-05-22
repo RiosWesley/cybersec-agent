@@ -108,14 +108,14 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
                 datasets: [{
                     data: [0, 0, 0, 0, 0],
                     backgroundColor: [
-                        '#ff3131', // CRITICAL
-                        '#ff9000', // HIGH
-                        '#ffea00', // MEDIUM
-                        '#00f0ff', // LOW
-                        '#8ea1b4'  // INFO
+                        '#ff2e5b', // CRITICAL (Crimson)
+                        '#ff9000', // HIGH (Orange)
+                        '#ffd900', // MEDIUM (Yellow)
+                        '#00f3ff', // LOW (Cyan)
+                        '#a1a1aa'  // INFO (Zinc)
                     ],
                     borderWidth: 1,
-                    borderColor: '#0c1020'
+                    borderColor: '#121215'
                 }]
             },
             options: {
@@ -125,10 +125,10 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
                     legend: {
                         position: 'right',
                         labels: {
-                            color: '#8ea1b4',
+                            color: '#a1a1aa',
                             font: {
-                                family: 'Inter',
-                                size: 10
+                                family: 'Share Tech Mono',
+                                size: 11
                             }
                         }
                     }
