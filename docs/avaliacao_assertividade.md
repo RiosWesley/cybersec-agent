@@ -1,6 +1,6 @@
 # 📊 Metodologia de Avaliação de Assertividade do CyberSentinel
 
-Este documento descreve a metodologia e as diretrizes recomendadas para auditar, mensurar e comparar a assertividade das análises de incidentes geradas pelos modelos **Qwen Nativo** e **CyberSentinel (Fine-tuned)**.
+Este documento descreve a metodologia e as diretrizes recomendadas para auditar, mensurar e comparar a assertividade das análises de incidentes geradas pelas configurações **Sem Prompt** (modelo base) e **Com Prompt** (Agente CyberSentinel).
 
 ---
 
@@ -74,7 +74,7 @@ Prepare um arquivo CSV ou JSON chamado `golden_dataset.json` contendo no mínimo
 ```
 
 ### Passo 2: Execução em Lote (Batch Evaluation)
-Crie um script em Python para ler o *Golden Dataset*, realizar as requisições de inferência para ambos os modelos (`qwen_nativo` e `qwen_finetuned`) e guardar as respostas brutas.
+Crie um script em Python para ler o *Golden Dataset*, realizar as requisições de inferência para ambas as configurações (`sem_prompt` e `com_prompt`) e guardar as respostas brutas.
 
 ### Passo 3: Parsing e Extração Automática
 Utilize expressões regulares para extrair os dados gerados pelo modelo nas seções de resposta:
@@ -155,8 +155,8 @@ def test_model(model_name):
 
 if __name__ == "__main__":
     print("Iniciando auditoria rápida de conformidade...\n")
-    test_model("nativo")
-    test_model("finetuned")
+    test_model("sem_prompt")
+    test_model("com_prompt")
 ```
 
 ---
@@ -165,10 +165,10 @@ if __name__ == "__main__":
 
 Use esta estrutura para consolidar as análises após o término de um ciclo de testes:
 
-1.  **Acurácia de Severidade**: Qwen Nativo (X%) vs. CyberSentinel Fine-tuned (Y%)
-2.  **Acurácia MITRE ATT&CK**: Qwen Nativo (X%) vs. CyberSentinel Fine-tuned (Y%)
+1.  **Acurácia de Severidade**: Qwen Sem Prompt (X%) vs. Qwen Com Prompt (Y%)
+2.  **Acurácia MITRE ATT&CK**: Qwen Sem Prompt (X%) vs. Qwen Com Prompt (Y%)
 3.  **Aderência ao Idioma Português (Thinking + Output)**:
-    *   *Nativo*: Se tendeu a alucinar ou pensar em inglês.
-    *   *CyberSentinel*: Raciocínio consistente e 100% em português.
-4.  **Qualidade Média da Mitigação (1-5)**: Qwen Nativo (Média) vs. CyberSentinel (Média)
+    *   *Sem Prompt*: Se tendeu a alucinar ou responder em inglês/outros formatos.
+    *   *Com Prompt (CyberSentinel)*: Raciocínio consistente e 100% em português.
+4.  **Qualidade Média da Mitigação (1-5)**: Qwen Sem Prompt (Média) vs. Qwen Com Prompt (Média)
 5.  **Principais Falhas Encontradas**: Descrever se houve alucinações repetidas ou perda de formatação markdown.

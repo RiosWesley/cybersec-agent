@@ -1,6 +1,7 @@
 import os
 import time
 import ctypes
+import threading
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -37,17 +38,10 @@ NATIVO_MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "qwen_nati
 FINETUNED_MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "qwen_finetuned.gguf")
 LEGACY_MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "model.gguf")
 
-# Dicionário de instâncias dos modelos carregados na RAM (Carregamento lazy/sob demanda)
-llms = {
-    "nativo": None,
-    "finetuned": None
-}
-
-# Dicionário para rastrear a mensagem de erro específica caso o carregamento falhe
-llm_errors = {
-    "nativo": None,
-    "finetuned": None
-}
+# Instância única do modelo carregado na RAM (evita duplicação e OOM)
+llm_instance = None
+llm_error = None
+llm_lock = threading.Lock()
 
 # Buffer para capturar logs do llama.cpp e ajudar a detalhar falhas de inicialização
 llama_log_buffer = []
@@ -83,64 +77,61 @@ Importante:
 ## 📋 Plano de Resposta e Mitigação: Indique os passos práticos de contenção, erradicação e recuperação que o analista de infraestrutura deve executar.
 3. Todo o relatório final deve ser escrito em português do Brasil."""
 
-def init_llm(model_name: str):
-    global llms, llm_errors, llama_log_buffer
-    if llms[model_name] is not None:
+def init_llm():
+    global llm_instance, llm_error, llama_log_buffer
+    if llm_instance is not None:
         return
-        
-    path = NATIVO_MODEL_PATH if model_name == "nativo" else FINETUNED_MODEL_PATH
-    
-    # Fallback para o modelo legado caso qwen_finetuned não exista
-    if model_name == "finetuned" and not os.path.exists(path) and os.path.exists(LEGACY_MODEL_PATH):
-        path = LEGACY_MODEL_PATH
-        
-    # Fallback caso o modelo selecionado não esteja no disco mas o outro esteja
-    if not os.path.exists(path):
-        alternative = FINETUNED_MODEL_PATH if model_name == "nativo" else NATIVO_MODEL_PATH
-        if os.path.exists(alternative):
-            path = alternative
-        else:
-            err = f"Arquivo GGUF não encontrado. Caminho principal: {path}."
-            print(f"[ERROR] {err}")
-            llm_errors[model_name] = err
+    with llm_lock:
+        if llm_instance is not None:
             return
-
-    print(f"Carregando o modelo {model_name} a partir de: {path}...")
-    start_time = time.time()
-    
-    # Limpa logs anteriores antes de iniciar carregamento
-    llama_log_buffer.clear()
-    
-    try:
-        # Configurado de forma otimizada para execução em CPU (n_ctx=2048, n_threads=4)
-        llms[model_name] = Llama(
-            model_path=path,
-            n_ctx=2048,
-            n_threads=4,
-            n_batch=512,
-            verbose=True  # Habilita logs para que nosso callback capture detalhes de erros internos
-        )
-        llm_errors[model_name] = None
-        print(f"Modelo {model_name} carregado com sucesso em {time.time() - start_time:.2f}s!")
-        # Limpa o buffer de log após sucesso para liberar memória
-        llama_log_buffer.clear()
-    except Exception as e:
-        # Extrai os últimos logs relevantes do llama.cpp
-        recent_logs = [line.strip() for line in llama_log_buffer if line.strip()]
-        last_logs_str = " | ".join(recent_logs[-8:])
-        
-        err_msg = f"Falha interna no motor de inferência llama-cpp-python ao carregar GGUF. Erro: {type(e).__name__}: {str(e)}"
-        if last_logs_str:
-            err_msg += f" (Detalhes do llama.cpp: {last_logs_str})"
             
-        print(f"[ERROR] {err_msg}")
-        llm_errors[model_name] = err_msg
+        path = NATIVO_MODEL_PATH
+        if not os.path.exists(path):
+            if os.path.exists(FINETUNED_MODEL_PATH):
+                path = FINETUNED_MODEL_PATH
+            elif os.path.exists(LEGACY_MODEL_PATH):
+                path = LEGACY_MODEL_PATH
+            else:
+                err = f"Nenhum arquivo GGUF encontrado em {NATIVO_MODEL_PATH}."
+                print(f"[ERROR] {err}")
+                llm_error = err
+                return
+
+        print(f"Carregando o modelo a partir de: {path}...")
+        start_time = time.time()
+        
+        # Limpa logs anteriores antes de iniciar carregamento
+        llama_log_buffer.clear()
+        
+        try:
+            # Configurado de forma otimizada para execução em CPU (n_ctx=2048, n_threads=4)
+            llm_instance = Llama(
+                model_path=path,
+                n_ctx=2048,
+                n_threads=4,
+                n_batch=512,
+                verbose=True  # Habilita logs para que nosso callback capture detalhes de erros internos
+            )
+            llm_error = None
+            print(f"Modelo carregado com sucesso em {time.time() - start_time:.2f}s!")
+            # Limpa o buffer de log após sucesso para liberar memória
+            llama_log_buffer.clear()
+        except Exception as e:
+            # Extrai os últimos logs relevantes do llama.cpp
+            recent_logs = [line.strip() for line in llama_log_buffer if line.strip()]
+            last_logs_str = " | ".join(recent_logs[-8:])
+            
+            err_msg = f"Falha interna no motor de inferência llama-cpp-python ao carregar GGUF. Erro: {type(e).__name__}: {str(e)}"
+            if last_logs_str:
+                err_msg += f" (Detalhes do llama.cpp: {last_logs_str})"
+                
+            print(f"[ERROR] {err_msg}")
+            llm_error = err_msg
 
 @app.on_event("startup")
 def startup_event():
-    # Inicializa por padrão o modelo fine-tuned no startup do servidor para velocidade inicial
-    # O nativo será carregado quando o usuário alternar para o modo comparativo e rodar
-    init_llm("finetuned")
+    # Inicializa o modelo no startup
+    init_llm()
 
 class LogAnalysisRequest(BaseModel):
     log: str
@@ -152,60 +143,71 @@ class LogAnalysisResponse(BaseModel):
 
 @app.get("/health")
 def health_check():
-    nativo_exists = os.path.exists(NATIVO_MODEL_PATH)
-    finetuned_exists = os.path.exists(FINETUNED_MODEL_PATH) or os.path.exists(LEGACY_MODEL_PATH)
+    model_exists = os.path.exists(NATIVO_MODEL_PATH) or os.path.exists(FINETUNED_MODEL_PATH) or os.path.exists(LEGACY_MODEL_PATH)
     return {
-        "status": "healthy" if (nativo_exists or finetuned_exists) else "degraded",
-        "model_loaded_nativo": llms["nativo"] is not None,
-        "model_loaded_finetuned": llms["finetuned"] is not None,
-        "model_exists_nativo": nativo_exists,
-        "model_exists_finetuned": finetuned_exists
+        "status": "healthy" if model_exists else "degraded",
+        "model_loaded": llm_instance is not None,
+        "model_file_exists": model_exists
     }
 
+@app.get("/prompt")
+def get_system_prompt():
+    return {"system_prompt": SYSTEM_PROMPT}
+
 @app.post("/analyze")
-def analyze_log(request: LogAnalysisRequest, model: str = "finetuned"):
-    global llms
-    if model not in ["nativo", "finetuned"]:
-        raise HTTPException(status_code=400, detail="Modelo inválido. Escolha 'nativo' ou 'finetuned'.")
-        
-    if llms[model] is None:
-        init_llm(model)
-        if llms[model] is None:
-            err_detail = llm_errors[model] or "Erro indeterminado de inicialização."
+def analyze_log(request: LogAnalysisRequest, model: str = "com_prompt"):
+    global llm_instance
+    # Mapeamento para suportar nomes antigos e novos
+    use_system = model in ["finetuned", "com_prompt"]
+    
+    if llm_instance is None:
+        init_llm()
+        if llm_instance is None:
+            err_detail = llm_error or "Erro indeterminado de inicialização."
             raise HTTPException(
                 status_code=503, 
-                detail=f"O modelo de linguagem '{model}' não pôde ser carregado. Detalhes técnicos: {err_detail}"
+                detail=f"O modelo de linguagem não pôde ser carregado. Detalhes técnicos: {err_detail}"
             )
             
-    # Prepara a entrada seguindo a estrutura ChatML recomendada para o Qwen/Llama
-    prompt = f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n"
-    if request.context:
-        prompt += f"<|im_start|>user\nContexto Organizacional: {request.context}\n\nLog/Alerta a ser analisado:\n{request.log}<|im_end|>\n"
+    if use_system:
+        # Prepara a entrada seguindo a estrutura ChatML recomendada para o Qwen/Llama com System Prompt
+        prompt = f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n"
+        if request.context:
+            prompt += f"<|im_start|>user\nContexto Organizacional: {request.context}\n\nLog/Alerta a ser analisado:\n{request.log}<|im_end|>\n"
+        else:
+            prompt += f"<|im_start|>user\nLog/Alerta a ser analisado:\n{request.log}<|im_end|>\n"
+        
+        # Pré-preenchimento do assistente para iniciar o raciocínio em português
+        prefill = "<think>\nProcesso de Raciocínio:\n1. Análise do log: "
+        prompt += f"<|im_start|>assistant\n{prefill}"
     else:
-        prompt += f"<|im_start|>user\nLog/Alerta a ser analisado:\n{request.log}<|im_end|>\n"
-    
-    # Pré-preenchimento do assistente para iniciar o raciocínio em português
-    prefill = "<think>\nProcesso de Raciocínio:\n1. Análise do log: "
-    prompt += f"<|im_start|>assistant\n{prefill}"
+        # Sem System Prompt: Envia diretamente a entrada do usuário ao modelo, sem diretrizes estruturadas
+        if request.context:
+            prompt = f"<|im_start|>user\nContexto Organizacional: {request.context}\n\nLog/Alerta a ser analisado:\n{request.log}<|im_end|>\n"
+        else:
+            prompt = f"<|im_start|>user\nLog/Alerta a ser analisado:\n{request.log}<|im_end|>\n"
+        prompt += "<|im_start|>assistant\n"
+        prefill = ""
     
     def event_generator():
-        # Rendemos o prefill primeiro para que o frontend receba as tags
-        yield prefill
-        try:
-            chunks = llms[model](
-                prompt,
-                max_tokens=1024,
-                temperature=0.2,
-                top_p=0.9,
-                stop=["<|im_end|>", "<|im_start|>"],
-                echo=False,
-                stream=True
-            )
-            for chunk in chunks:
-                text = chunk['choices'][0]['text']
-                yield text
-        except Exception as e:
-            yield f"\n[Erro no motor de inferência: {str(e)}]"
+        if prefill:
+            yield prefill
+        with llm_lock:
+            try:
+                chunks = llm_instance(
+                    prompt,
+                    max_tokens=1024,
+                    temperature=0.2,
+                    top_p=0.9,
+                    stop=["<|im_end|>", "<|im_start|>"],
+                    echo=False,
+                    stream=True
+                )
+                for chunk in chunks:
+                    text = chunk['choices'][0]['text']
+                    yield text
+            except Exception as e:
+                yield f"\n[Erro no motor de inferência: {str(e)}]"
             
     return StreamingResponse(event_generator(), media_type="text/plain; charset=utf-8")
 

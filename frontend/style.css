@@ -974,3 +974,194 @@ body {
         gap: 16px;
     }
 }
+
+/* ==========================================================================
+   CYBERSENTINEL PROMPT MODAL & TOUR STYLES
+   ========================================================================== */
+
+.modal-content.modal-large {
+    width: 800px;
+    max-width: 95%;
+}
+
+.description-text {
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.prompt-code-container {
+    background-color: #060608;
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.prompt-code-container pre {
+    margin: 0;
+}
+
+.prompt-code-container code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent-cyan);
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+}
+
+.prompt-explanation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.exp-box {
+    background-color: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    padding: 12px;
+}
+
+.exp-title {
+    font-family: var(--font-title);
+    font-size: 10px;
+    color: var(--accent-orange);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.exp-text {
+    font-family: var(--font-sans);
+    font-size: 11px !important;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0 !important;
+}
+
+/* Tour Backdrop */
+.tour-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.65);
+    z-index: 10000;
+    pointer-events: auto;
+    transition: opacity 0.3s ease;
+}
+
+/* Tour Highlight Element */
+.tour-highlight {
+    position: relative;
+    z-index: 10001 !important;
+    outline: 2px solid var(--accent-green) !important;
+    box-shadow: 0 0 25px rgba(0, 255, 102, 0.3) !important;
+    pointer-events: none !important;
+}
+
+/* Tour Floating Card */
+.tour-card {
+    position: fixed;
+    background-color: #0c0c0f;
+    border: 1px solid var(--accent-green);
+    width: 340px;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.15);
+    z-index: 10002;
+    padding: 0;
+    font-family: var(--font-sans);
+    transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1), left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tour-card-header {
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.step-indicator {
+    font-family: var(--font-title);
+    font-size: 10px;
+    color: var(--accent-green);
+    letter-spacing: 0.5px;
+}
+
+.close-tour {
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.close-tour:hover {
+    color: var(--accent-orange);
+}
+
+.tour-card-body {
+    padding: 16px;
+}
+
+.step-title {
+    font-family: var(--font-title);
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.step-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.tour-card-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    background-color: var(--bg-card);
+}
+
+.btn-tour-nav {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+}
+
+.btn-tour-nav.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.btn-tour-nav.btn-secondary:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.btn-tour-nav.btn-primary {
+    background: rgba(0, 255, 102, 0.05);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.btn-tour-nav.btn-primary:hover {
+    background: var(--accent-green);
+    color: #000;
+}
+
+@media (max-width: 768px) {
+    .prompt-explanation-grid {
+        grid-template-columns: 1fr;
+    }
+}

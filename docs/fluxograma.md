@@ -1,80 +1,108 @@
 # 📊 Fluxograma de Funcionamento — CyberSentinel
 
-Este documento contém a representação em diagramas do ciclo de vida e processamento do agente inteligente CyberSentinel.
+Este documento contém a representação em diagramas (sintaxe Mermaid.js) do ciclo de vida, fluxo de processamento concorrente e arquitetura de dados do agente inteligente **CyberSentinel**.
 
 ---
 
-## 🔄 1. Fluxograma de Execução do Agente (Inferência Local)
+## 🔄 1. Fluxograma de Execução do Agente (Inferência Local com Lock)
 
-O diagrama a seguir descreve a jornada de um log bruto de segurança desde sua entrada na interface até o processamento local pela LLM fine-tuned e a exibição das respostas estruturadas de mitigação no painel.
+O diagrama a seguir descreve a jornada de um log bruto de segurança desde a submissão no Frontend até o processamento síncrono no backend FastAPI (através do mecanismo de bloqueio de concorrência) e a renderização do stream final.
 
 ```mermaid
 graph TD
     %% Nós
-    Start([Inicio: Novo Incidente]) --> Input[Interface: Usuario insere Log + Contexto]
+    Start([Início: Novo Incidente]) --> Input[Interface: Usuário insere Log + Contexto]
     Input --> Valid{API Ativa?}
     
-    Valid -- Nao --> Error[Exibe Erro de Conexao]
+    Valid -- Não --> Error[Exibe Erro de Conexão no Dashboard]
     Valid -- Sim --> Payload[FastAPI recebe POST em /analyze]
     
-    Payload --> ModelCheck{Modelo GGUF carregado?}
-    ModelCheck -- Nao --> ModelLoad[Carrega model.gguf em CPU via llama-cpp-python]
-    ModelLoad --> PromptBuild
-    ModelCheck -- Sim --> PromptBuild[Montagem do Prompt com SYSTEM_PROMPT do SOC Analyst]
+    Payload --> ModelCheck{Modelo GGUF inicializado?}
+    ModelCheck -- Não --> ModelLoad[Carrega qwen_nativo.gguf em RAM via Llama class]
+    ModelLoad --> LockAcquire
+    ModelCheck -- Sim --> LockAcquire[Aquisição da trava global: llm_lock]
     
-    PromptBuild --> Inference[Inferencia local em 4-bits no modelo Qwen3.5-2B-Instruct]
-    Inference --> TextGen[Geracao do Parecer Tecnico Estruturado]
+    LockAcquire -->|Aguardando na Fila| Wait[Bloqueia até liberação]
+    LockAcquire -->|Livre| Exec[Invocação do Llama-cpp-python com Prompt e Parâmetros]
     
-    TextGen --> Response[FastAPI responde com JSON contendo relatorio + latencia]
-    Response --> UI[Frontend recebe resposta]
+    Exec --> StreamLoop{Loop de Geração de Tokens}
+    StreamLoop -->|Gera Token| StreamSend[Yield chunk de texto]
+    StreamSend --> StreamLoop
     
-    UI --> Parse[marked.js converte Markdown do parecer para HTML]
-    UI --> Severity[JavaScript extrai Severidade do texto]
-    
-    Parse --> Display[Renderiza parecer detalhado na tela]
-    Severity --> Chart[Atualiza grafico doughnut de estatisticas do SOC]
-    
-    Display --> End([Fim: Parecer entregue ao Analista])
-    Chart --> End
+    StreamLoop -->|Concluído / Fim| LockRelease[Liberação automática da trava llm_lock]
+    LockRelease --> End([Fim da Requisição])
     
     %% Estilos de Cor
     style Start fill:#060913,stroke:#00f0ff,stroke-width:2px,color:#fff
     style End fill:#060913,stroke:#00f0ff,stroke-width:2px,color:#fff
     style Valid fill:#0c1020,stroke:#ff9000,stroke-width:1px,color:#fff
     style ModelCheck fill:#0c1020,stroke:#ff9000,stroke-width:1px,color:#fff
-    style Inference fill:#00f0ff,stroke:#00a8ff,stroke-width:2px,color:#000
-    style UI fill:#39ff14,stroke:#39ff14,stroke-width:1px,color:#000
+    style LockAcquire fill:#ff2e5b,stroke:#ff2e5b,stroke-width:2px,color:#fff
+    style Exec fill:#00f0ff,stroke:#00a8ff,stroke-width:2px,color:#000
 ```
 
 ---
 
-## 🧠 2. Diagrama do Fluxo de Fine-Tuning (Treinamento)
+## 🧠 2. Diagrama do Fluxo de Comparação (Engenharia de Prompt Concorrente)
 
-Este diagrama detalha como o modelo especialista é gerado a partir do dataset real antes de ser exportado para o ambiente local Docker.
+Este diagrama detalha como a requisição de análise é direcionada e processada no modo comparativo para evidenciar o impacto da Engenharia de Prompt no modelo base. Como as duas requisições são disparadas em paralelo pelo frontend (`Promise.all`), a sincronização com `llm_lock` é crítica.
 
 ```mermaid
 flowchart TD
-    %% Nos
-    BaseModel[Modelo Base de Texto<br/>Qwen3.5-2B-Instruct] --> LoadModel[Carregamento com Unsloth em 4-bits]
+    %% Nós
+    LogInput[Log de Segurança Bruto + Contexto] --> ModeCheck{Modo Comparação?}
     
-    Dataset[Dataset Real HuggingFace<br/>sambanovasystems/attackqa] --> Preprocess[Preprocessamento: Conversao para formato conversacional ChatML]
-    Preprocess --> FormatData[Filtro de subset: 3000 exemplos de logs e mitigacao]
+    ModeCheck -- Não --> Single[Executa Rota: com_prompt]
+    ModeCheck -- Sim --> Parallel[Dispara Duas Requisições Paralelas via Promise.all]
     
-    LoadModel --> PEFT[Insercao de adaptadores LoRA<br/>r=16, alpha=16 nas camadas de projecao]
+    Parallel --> RouteSem[POST /analyze?model=sem_prompt]
+    Parallel --> RouteCom[POST /analyze?model=com_prompt]
+    Single --> RouteCom
     
-    PEFT --> Train[Loop de Treinamento supervisionado SFTTrainer]
-    FormatData --> Train
+    subgraph Servidor FastAPI [Sincronização por Trava]
+        RouteSem --> LockSem{Obtém llm_lock?}
+        RouteCom --> LockCom{Obtém llm_lock?}
+        
+        LockSem -- Sim (adquire) --> InferenceSem[Inferência local SEM Prompt de Sistema]
+        LockSem -- Não (ocupado) --> WaitSem[Aguardando liberação do Lock]
+        
+        LockCom -- Sim (adquire) --> ContextBuild[Monta ChatML com SYSTEM_PROMPT + Prefill]
+        ContextBuild --> InferenceCom[Inferência local COM Prompt de Sistema]
+        LockCom -- Não (ocupado) --> WaitCom[Aguardando liberação do Lock]
+        
+        InferenceSem --> ReleaseSem[Libera llm_lock]
+        InferenceCom --> ReleaseCom[Libera llm_lock]
+    end
     
-    Train --> Checkpoints[Pesos LoRA aprendidos com ciberseguranca]
+    ReleaseSem --> OutputSem[Stream: Português Genérico/Inglês, Sem Estrutura]
+    ReleaseCom --> OutputCom[Stream: Raciocínio & Relatório SOC Estruturado em Markdown]
     
-    Checkpoints --> Merge[Fusao automatica dos adaptadores LoRA ao Modelo Base]
-    Merge --> GGUF[Quantizacao final 4-bits e exportacao para GGUF]
+    OutputSem --> UICompare[Exibição Comparativa Lado a Lado no Dashboard]
+    OutputCom --> UICompare
     
-    GGUF --> DockerFolder[Modelo copiado para pasta backend/models/model.gguf]
+    %% Relações de espera
+    WaitSem -.->|Quando liberado| LockSem
+    WaitCom -.->|Quando liberado| LockCom
     
     %% Estilos de Cor
-    style BaseModel fill:#0c1020,stroke:#fff,color:#fff
-    style Dataset fill:#0c1020,stroke:#fff,color:#fff
-    style Train fill:#ff9000,stroke:#ff9000,color:#fff
-    style GGUF fill:#39ff14,stroke:#39ff14,color:#000
+    style LogInput fill:#0c1020,stroke:#fff,color:#fff
+    style ModeCheck fill:#ff9000,stroke:#ff9000,color:#fff
+    style LockSem fill:#ff2e5b,stroke:#ff2e5b,color:#fff
+    style LockCom fill:#ff2e5b,stroke:#ff2e5b,color:#fff
+    style InferenceSem fill:#0c1020,stroke:#ff8888,color:#fff
+    style InferenceCom fill:#0c1020,stroke:#39ff14,color:#fff
+    style UICompare fill:#00f3ff,stroke:#00f3ff,color:#000
+```
+
+---
+
+## 📥 3. Entradas, Processamento e Saídas (PEAS)
+
+O ciclo de vida de dados do agente segue o paradigma tradicional de processamento:
+
+```
+📥 ENTRADAS                        🧠 PROCESSAMENTO                      📤 SAÍDAS
+- Log Bruto (Syslog, SSH, etc.)   - Formatação ChatML                   - Raciocínio (<think>)
+- Contexto da TI                  - Sincronização por Thread-Lock       - Classificação de Risco
+- Parâmetro Model (com/sem)       - Inferência GGUF CPU Otimizada       - MITRE ATT&CK, CIA & Mitigação
 ```

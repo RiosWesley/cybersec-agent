@@ -30,6 +30,7 @@
             
             <nav class="nav-menu">
                 <a href="#" class="active"><span class="cmd-prompt">&gt;</span> terminal_analise</a>
+                <a href="#" id="btn-show-prompt"><span class="cmd-prompt">&gt;</span> prompt_sistemico.cfg</a>
                 <a href="#" id="btn-show-about"><span class="cmd-prompt">&gt;</span> info_agente.log</a>
             </nav>
 
@@ -65,8 +66,11 @@
                     <p class="tagline">Console de depuração de segurança para logs brutos e relatórios de inteligência de ameaças.</p>
                 </div>
                 <div class="topbar-actions">
+                    <button id="btn-start-tour" class="btn-secondary tour-btn">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span>GUIA_VISUAL</span>
+                    </button>
                     <button id="btn-compare-toggle" class="btn-secondary compare-btn">
-                        <i class="fa-solid fa-columns"></i> <span>COMPARE_MODELS</span>
+                        <i class="fa-solid fa-columns"></i> <span>COMPARAÇÃO</span>
                     </button>
                     <div class="api-address">
                         <span class="api-label">LOCAL_URL:</span>
@@ -92,7 +96,7 @@
                                 <span>[GUIDE_INSTRUCTIONS]</span>
                             </div>
                             <div class="guideline-body">
-                                <p>&gt;_ Carregue uma das <strong>Simulações Reais</strong> abaixo para preencher o buffer de logs. Em seguida, clique em Analisar Incidente para disparar a inferência do modelo local fine-tuned.</p>
+                                <p>&gt;_ Carregue uma das <strong>Simulações Reais</strong> abaixo para preencher o buffer de logs. Em seguida, clique em EXECUTE_MODEL_ANALYSIS para disparar a inferência do modelo local.</p>
                             </div>
                         </div>
 
@@ -175,6 +179,9 @@
                             </div>
                             <p class="placeholder-main-text">&gt;_ Awaiting Log Buffer Submission...</p>
                             <p class="small-text">Insira dados na seção [INPUT_LOG_STREAM] e clique em EXECUTE_MODEL_ANALYSIS. O parecer de cibersegurança contendo o mapeamento MITRE ATT&CK e mitigação será plotado neste console.</p>
+                            <button type="button" id="btn-placeholder-tour" class="btn-secondary" style="margin-top: 15px; border-color: var(--accent-green); color: var(--accent-green); cursor: pointer; padding: 8px 16px;">
+                                <i class="fa-solid fa-play"></i> Iniciar Guia Visual Interativo
+                            </button>
                         </div>
 
                         <!-- Modo Individual -->
@@ -200,10 +207,10 @@
 
                         <!-- Modo Comparativo Lado a Lado -->
                         <div id="compare-model-output" class="compare-output-container hidden">
-                            <!-- Coluna Esquerda: Qwen Nativo -->
+                            <!-- Coluna Esquerda: Qwen Sem System Prompt -->
                             <div class="compare-col" id="col-nativo">
                                 <div class="compare-col-header">
-                                    <span><i class="fa-solid fa-microchip"></i> [MODEL_BASE: QWEN_NATIVO]</span>
+                                    <span><i class="fa-solid fa-microchip"></i> [MODELO_BASE: SEM_PROMPT]</span>
                                     <span id="execution-tag-nativo" class="execution-tag hidden">0.00s</span>
                                 </div>
                                 <div id="thinking-container-nativo" class="thinking-container hidden">
@@ -221,10 +228,10 @@
                                 <div id="output-content-nativo" class="markdown-content hidden"></div>
                             </div>
 
-                            <!-- Coluna Direita: CyberSentinel Fine-tuned -->
+                            <!-- Coluna Direita: Qwen Com System Prompt -->
                             <div class="compare-col" id="col-finetuned">
                                 <div class="compare-col-header">
-                                    <span><i class="fa-solid fa-shield-halved text-lime"></i> [MODEL_AGENT: CYBERSENTINEL]</span>
+                                    <span><i class="fa-solid fa-shield-halved text-lime"></i> [AGENTE: COM_PROMPT]</span>
                                     <span id="execution-tag-finetuned" class="execution-tag hidden">0.00s</span>
                                 </div>
                                 <div id="thinking-container-finetuned" class="thinking-container hidden">
@@ -264,8 +271,8 @@
                     <li><strong>SENSORS:</strong> Buffer textual de incidentes, contexto da organização e logs armazenados.</li>
                 </ul>
                 
-                <h4>[2. TRAINING_PIPELINE_METRICS]</h4>
-                <p>O modelo base <strong>Qwen3.5-2B</strong> foi ajustado via **Fine-tuning QLoRA** no Google Colab T4 utilizando o dataset **AttackQA**. O resultado final foi quantizado para GGUF 4 bits para inferência ágil local em CPU.</p>
+                <h4>[2. PROMPT_ENGINEERING_COMPARISON]</h4>
+                <p>Comparamos a inferência do modelo base <strong>Qwen3.5-2B</strong> (quantizado para GGUF 4 bits) rodando localmente em CPU sob duas abordagens. O modo <strong>COM_PROMPT</strong> ativa a persona do CyberSentinel (Agente SOC), estruturando e traduzindo a resposta para comandos de mitigação, enquanto o modo <strong>SEM_PROMPT</strong> exibe o comportamento nativo não estruturado.</p>
                 
                 <div class="bios-footer">
                     [ CLICK CLOSE TO RUN SYSTEM EXIT ]
@@ -274,10 +281,63 @@
         </div>
     </div>
 
+    <!-- Modal do Prompt do Sistema (Visual Moderno Clean Dark) -->
+    <div id="prompt-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>CYBERSENTINEL_SYSTEM_PROMPT_CONFIG</h3>
+                <span class="close-modal" id="close-prompt-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="description-text">&gt;_ A engenharia de prompt abaixo define o comportamento cognitivo, formatação e restrições do agente analista SOC:</p>
+                
+                <div class="prompt-code-container">
+                    <pre><code class="language-plaintext" id="prompt-code-content">Carregando prompt do sistema...</code></pre>
+                </div>
+                
+                <div class="prompt-explanation-grid">
+                    <div class="exp-box">
+                        <span class="exp-title">[ 🎯 PERSONA ]</span>
+                        <p class="exp-text">Define o agente como um "Analista SOC Sênior especialista em resposta a incidentes cibernéticos", moldando a autoridade técnica e tom analítico das respostas.</p>
+                    </div>
+                    <div class="exp-box">
+                        <span class="exp-title">[ 🧠 RESTRIÇÃO DE RACIOCÍNIO ]</span>
+                        <p class="exp-text">Força o modelo a passar pela fase de "Thinking Process" curta e estruturada em português do Brasil antes de gerar o parecer final.</p>
+                    </div>
+                    <div class="exp-box">
+                        <span class="exp-title">[ 📋 ESTRUTURAÇÃO RÍGIDA ]</span>
+                        <p class="exp-text">Exige 4 seções em Markdown (Classificação, MITRE, CIA, Mitigação) para que a resposta seja padronizada e integrável com outros sistemas.</p>
+                    </div>
+                </div>
+
+                <div class="bios-footer">
+                    [ CLICK CLOSE OR ESC TO RETURN TO TERMINAL ]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Elementos do Guia Visual (Tour) -->
+    <div id="tour-backdrop" class="tour-backdrop hidden"></div>
+    <div id="tour-card" class="tour-card hidden">
+        <div class="tour-card-header">
+            <span id="tour-step-indicator" class="step-indicator">[PASSO 1 DE 6]</span>
+            <span id="btn-close-tour" class="close-tour">&times;</span>
+        </div>
+        <div class="tour-card-body">
+            <h4 id="tour-step-title" class="step-title">Título do Passo</h4>
+            <p id="tour-step-desc" class="step-desc">Descrição do passo explicativo...</p>
+        </div>
+        <div class="tour-card-footer">
+            <button id="btn-tour-prev" class="btn-tour-nav btn-secondary"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+            <button id="btn-tour-next" class="btn-tour-nav btn-primary">Próximo <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </div>
+
     <!-- Scripts de Terceiros: marked.js para Markdown e Chart.js para Gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lógica da Interface -->
-    <script src="app.js?v=1.0.4"></script>
+    <script src="app.js?v=1.0.5"></script>
 </body>
 </html>

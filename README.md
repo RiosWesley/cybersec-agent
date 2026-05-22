@@ -8,11 +8,13 @@ O agente é capaz de receber logs de segurança de servidores, alertas de firewa
 
 ## 📋 Sumário
 1. [Definição do Problema Real](#-definição-do-problema-real)
-2. [Arquitetura PEAS do Agente Inteligente](#-arquitetura-peas-do-agente-inteligente)
-3. [Entradas, Processamento e Saídas](#-entradas-processamento-e-saídas)
-4. [Pipeline de Fine-Tuning (Treinamento do Especialista)](#-pipeline-de-fine-tuning-treinamento-do-especialista)
-5. [Interface Customizada (Dashboard SOC)](#-interface-customizada-dashboard-soc)
-6. [Instruções para Execução Local (Docker)](#-instruções-para-execução-local-docker)
+2. [Como o Agente Funciona](#-como-o-agente-funciona)
+3. [Arquitetura PEAS do Agente Inteligente](#-arquitetura-peas-do-agente-inteligente)
+4. [Entradas, Processamento e Saídas](#-entradas-processamento-e-saídas)
+5. [Fluxograma de Funcionamento](#-fluxograma-de-funcionamento)
+6. [Engenharia de Prompt e Estruturação de Persona SOC](#-engenharia-de-prompt-e-estruturacao-de-persona-soc)
+7. [Interface Customizada (Dashboard SOC)](#-interface-customizada-dashboard-soc)
+8. [Instruções para Execução Local](#-instruções-para-execução-local)
 
 ---
 
@@ -25,6 +27,17 @@ Pequenas e médias empresas (PMEs) enfrentam um grande dilema:
 - Ferramentas tradicionais geram alertas de segurança complexos em arquivos de log brutos que gerentes de TI genéricos não sabem interpretar nem mitigar a tempo.
 
 **O CyberSentinel resolve este problema:** Ele atua como um triador de incidentes de primeiro nível em cibersegurança de baixo custo, traduzindo logs incompreensíveis em relatórios estruturados de ameaças com planos de ação claros.
+
+---
+
+## ⚙️ Como o Agente Funciona
+
+O **CyberSentinel** baseia-se no conceito de **Agente Inteligente Baseado em Objetivos e Regras de Decisão**. Seu ciclo de funcionamento consiste em um fluxo contínuo de percepção do ambiente, processamento lógico de regras sob a luz de conhecimentos específicos de segurança e, finalmente, atuação na interface.
+
+1. **Percepção (Sensors)**: O agente lê logs crus informados e o contexto operacional (criticidade e setor de rede).
+2. **Deliberação e Raciocínio (Thinking Process)**: Ao receber a entrada, o backend do agente prepara a entrada do modelo em blocos no padrão ChatML. Um direcionador de raciocínio pré-preenche a resposta com a tag `<think>`. A IA inicia gerando seu processo de raciocínio passo a passo (Chain-of-Thought) inteiramente em português do Brasil, delimitando as etapas de triagem antes de emitir a resposta.
+3. **Ação (Actuators)**: O agente encerra a tag `</think>` e gera o relatório padronizado estruturando as seções Markdown exigidas. A saída é entregue ao frontend via fluxo contínuo (Streaming), que realiza a filtragem do raciocínio e do parecer final.
+4. **Resiliência e Concorrência**: Para evitar estouro de memória e crashes de thread-safety no backend (visto que o `llama.cpp` não aceita geração paralela concorrente no mesmo arquivo em memória), o agente utiliza um mecanismo de trava (`llm_lock`), enfileirando requisições concorrentes de modo seguro.
 
 ---
 
@@ -55,7 +68,7 @@ De acordo com a teoria de agentes inteligentes (Russell & Norvig), o CyberSentin
 ## 🔄 Entradas, Processamento e Saídas
 
 ```
- 📥 ENTRADA (Logs/CVE/Contexto) ──▶ 🧠 PROCESSAMENTO (LLM Fine-tuned + Regras) ──▶ 📤 SAÍDA (Dashboard/Mapeamento/Ações)
+ 📥 ENTRADA (Logs/CVE/Contexto) ──▶ 🧠 PROCESSAMENTO (LLM Local + System Prompt) ──▶ 📤 SAÍDA (Dashboard/Mapeamento/Ações)
 ```
 
 ### 1. Entradas (Sensors)
@@ -64,11 +77,11 @@ O agente recebe duas fontes de informação:
 - **Contexto da Organização:** A criticidade do servidor afetado e o nicho de mercado (ajuda a ajustar o impacto de Confidencialidade, Integridade e Disponibilidade - CIA).
 
 ### 2. Processamento (CPU / Local GGUF)
-O processamento é realizado por um modelo de linguagem otimizado (**Qwen3.5-2B-Instruct**) ajustado de forma supervisionada com adaptadores LoRA (QLoRA) para cibersegurança. 
+O processamento é realizado pelo modelo de linguagem local (**Qwen3.5-2B**) executado localmente em CPU através do motor de inferência `llama-cpp-python`.
 O processamento envolve:
-1. **Parsing da Entrada:** Extração de metadados como IPs de origem, portas, usuários e payloads.
-2. **Contextualização e Prompting:** O agente combina a entrada com instruções sistêmicas rígidas de SOC Analyst.
-3. **Inferencia Local:** O motor `llama-cpp-python` executa os pesos quantizados em CPU local, realizando a análise técnica com foco em cibersegurança defensiva.
+1. **Parsing da Entrada:** Extração de metadados de logs brutos como IPs de origem, portas, usuários e payloads maliciosos.
+2. **Chaveamento e Engenharia de Prompt:** O backend monta o prompt combinando as entradas com as diretrizes de persona e estruturação do `SYSTEM_PROMPT`.
+3. **Inferência Comparativa:** O motor executa a geração em formato de fluxo de dados (streaming). É possível chavear e comparar o comportamento original do modelo base (Sem Prompt) com o comportamento guiado pelo prompt (Com Prompt).
 
 ### 3. Saídas (Actuators)
 A resposta gerada pelo modelo é formatada rigidamente no seguinte padrão:
@@ -76,30 +89,89 @@ A resposta gerada pelo modelo é formatada rigidamente no seguinte padrão:
 - **Mapeamento MITRE ATT&CK:** Mapeia o log para uma Tática e Técnica real (ex: *Tática: Credential Access (TA0006)*, *Técnica: Brute Force (T1110)*).
 - **Análise de Impacto (CIA Triad):** Avaliação de quão afetados foram a Confidencialidade, Integridade e Disponibilidade dos sistemas.
 - **Plano de Resposta a Incidentes:** Passos claros de **Contenção** (ex: bloquear IP no firewall), **Erradicação** (ex: remover usuário comprometido) e **Recuperação** (ex: restaurar backup).
+---
+
+## 📊 Fluxograma de Funcionamento
+
+O diagrama abaixo detalha a arquitetura geral do sistema, desde a entrada de logs pelo analista até a renderização inteligente do parecer no dashboard, destacando a sincronização de threads no servidor FastAPI:
+
+```mermaid
+graph TD
+    classDef client fill:#00f3ff,stroke:#09090c,stroke-width:2px,color:#09090c;
+    classDef server fill:#ff9000,stroke:#09090c,stroke-width:2px,color:#09090c;
+    classDef lock fill:#ff2e5b,stroke:#09090c,stroke-width:2px,color:#ffffff;
+    classDef model fill:#00ff87,stroke:#09090c,stroke-width:2px,color:#09090c;
+
+    subgraph Cliente [Frontend - Dashboard SOC]
+        A["1. Entrada de Dados<br/>(Log Bruto + Contexto)"]:::client
+        B["2. Seleção de Modo<br/>(Individual vs Comparativo)"]:::client
+        H["7. Recebimento do Stream<br/>(Chunk por Chunk)"]:::client
+        I["8. Processamento do Stream<br/>(Separação via &lt;/think&gt;)"]:::client
+        J["9. Renderização na Interface<br/>(Raciocínio + Relatório Final)"]:::client
+    end
+
+    subgraph Servidor [Backend - FastAPI]
+        C["3. Endpoint /analyze<br/>(Parâmetro model: com/sem_prompt)"]:::server
+        D{"4. LLM Inicializado?"}:::server
+        E["Carregar qwen_nativo.gguf na RAM"]:::server
+        F["5. Aquisição de Trava de Thread<br/>(llm_lock)"]:::lock
+        G["6. Execução do Modelo<br/>(Inferencia / Streaming)"]:::model
+    end
+
+    A --> B
+    B -->|Fetch POST /analyze| C
+    C --> D
+    D -->|Não| E
+    D -->|Sim| F
+    E --> F
+    F --> G
+    G -->|Yield Token| H
+    H --> I
+    I --> J
+
+    %% Relação concorrente com fila
+    subgraph Concorrência [Controle de Fila]
+        F -->|Thread 1 bloqueia| G
+        F -.->|Thread 2 aguarda llm_lock| F
+    end
+```
+
+### Detalhamento do Fluxo:
+1. **Entrada:** O usuário submete o log e o contexto operacional no frontend.
+2. **Modo:** Caso o usuário ative o modo comparativo, o frontend dispara duas requisições HTTP paralelas via `Promise.all` (`/analyze?model=sem_prompt` e `/analyze?model=com_prompt`).
+3. **Backend & Fila:** As requisições chegam concorrentemente no backend FastAPI. O middleware desativa o cache e chama a rota correspondente.
+4. **Lock de Thread:** Como a biblioteca `llama-cpp-python` não é thread-safe para inferência simultânea, a trava global `llm_lock` é acionada. A primeira thread a adquirir o lock executa a inferência enquanto a segunda aguarda ordenadamente na fila.
+5. **Inferencia Local:** A IA processa o prompt usando o modelo unificado carregado em memória RAM. O fluxo de texto é gerado token a token.
+6. **Streaming & Separação:** O frontend recebe o stream incremental. A lógica JavaScript detecta a tag de fechamento de raciocínio `</think>` para separar e popular os campos corretos na interface.
 
 ---
 
-## 🧠 Pipeline de Fine-Tuning (Treinamento do Especialista)
+## 🧠 Engenharia de Prompt e Estruturação de Persona SOC
 
-Modelos generativos comuns de linguagem (como ChatGPT ou Gemini base) costumam falhar ao analisar logs brutos de segurança porque não possuem treinamento focado e contextualizado na sintaxe e nos jargões de segurança da informação.
+Em vez de depender de um treinamento de ajuste fino (fine-tuning) que consome muitos recursos computacionais (VRAM/RAM), pode sofrer com esquecimento catastrófico e possui menor flexibilidade, o CyberSentinel adota uma abordagem robusta de **Prompt Engineering** estruturada sobre o modelo base local.
 
-Para solucionar isso, o CyberSentinel passou por um ajuste fino (fine-tuning):
-- **Modelo Base:** `unsloth/Qwen3.5-2B-Instruct` devido a sua alta velocidade, eficiência e forte capacidade de reasoning.
-- **Dataset Real Utilizado:** **AttackQA** (SambaNova Systems), disponível publicamente no HuggingFace. Contém mais de **25.000 anotações reais** de perguntas e respostas detalhadas sobre táticas, técnicas, mitigações e ameaças da base oficial do MITRE ATT&CK.
-- **Método de Otimização:** **QLoRA (Quantized Low-Rank Adaptation)** com precisão de 4 bits. O treinamento otimizou os pesos das matrizes de atenção e perceptrons multicamadas (`target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]`) com rank `r=16` e fator de escala `alpha=16`.
-- **Exportação GGUF:** O script funde os adaptadores LoRA aprendidos de cibersegurança com o modelo base e exporta um arquivo `.gguf` quantizado em 4 bits (`q4_k_m`), que permite executar a inferência de forma leve em qualquer processador (CPU) comum sem necessitar de placas de vídeo (GPU).
+### 1. Filosofia de Design de Prompt
+O `SYSTEM_PROMPT` (definido em [app.py](file:///C:/Users/SnyX/antigravity/proud-noether/backend/app.py) e visualizado como `prompt_sistemico.cfg` no app) atua como um direcionador comportamental rígido para a IA, obrigando-a a adotar as seguintes práticas:
+- **Restrição de Raciocínio (Thinking Process):** Antes de responder, o modelo executa uma análise interna sequencial envolta em tags `<think>`, estruturando o pensamento estritamente em português para delimitar a lógica de triagem do log.
+- **Formatação Padronizada:** A IA é induzida a gerar a resposta final com uma estrutura exata em Markdown (Classificação, MITRE ATT&CK, Impacto CIA e Plano de Mitigação).
 
-> 💡 O notebook de fine-tuning adaptado para execução no Google Colab está localizado em: [cybersentinel_finetune.ipynb](file:///C:/Users/SnyX/antigravity/proud-noether/training/cybersentinel_finetune.ipynb) (com a versão script correspondente em [ai_studio_code_(1).py](file:///C:/Users/SnyX/antigravity/proud-noether/ai_studio_code_(1).py)).
+### 2. Por que Comparar Abordagens?
+Ao comparar a execução **Sem Prompt** (modelo base recebendo apenas o log bruto) com o modo **Com Prompt** (o mesmo modelo sob as instruções sistêmicas do CyberSentinel), provamos que:
+1. **Instruções Sistêmicas** são suficientes para alinhar um modelo pequeno de 2B a saídas técnicas ultra-estruturadas de alta qualidade.
+2. Evitamos a duplicação de modelos pesados em disco e memória RAM, reduzindo a pegada do app pela metade e evitando travamentos por falta de memória (OOM).
 
+> 💡 Para fins de estudo acadêmico, o notebook original de fine-tuning LoRA com o dataset *AttackQA* está preservado em: [cybersentinel_finetune.ipynb](file:///C:/Users/SnyX/antigravity/proud-noether/training/cybersentinel_finetune.ipynb) e no script correspondente [ai_studio_code_(1).py](file:///C:/Users/SnyX/antigravity/proud-noether/ai_studio_code_(1).py).
 ---
 
 ## 🖥️ Interface Customizada (Dashboard SOC)
 
 A interface web foi desenvolvida sob medida com uma identidade visual moderna de Centro de Operações de Segurança (SOC):
-- **Tema Dark Cyber:** Paleta de cores tecnológica e neon para indicação de estados e severidades.
-- **Métricas em Tempo Real:** Contador de ameaças analisadas e cálculo de latência de inferência do modelo local.
-- **Gráfico Dinâmico de Severidade:** Gráfico no formato Doughnut (Chart.js) que se atualiza automaticamente conforme novas ameaças de diferentes criticidades são diagnosticadas.
-- **Templates Reais Integrados:** O usuário (ou professor) pode testar com um único clique quatro simulações de ataques populares: *SSH Brute Force*, *SQL Injection*, *DDoS HTTP Flood* e *Ransomware Alert*.
+- **Tema Dark Cyber:** Paleta de cores tecnológica e neon com glows e transições responsivas.
+- **Modo Comparativo Lado a Lado:** Permite visualizar a inferência simultânea e concorrente dos modos **Sem Prompt** e **Com Prompt**, destacando as diferenças de estruturação do parecer técnico.
+- **Guia Visual Interativo:** Um tour passo a passo integrado que destaca e explica cada seção do relatório de segurança na tela com navegação suave.
+- **Visualizador de Configuração:** Menu lateral com acesso ao arquivo de configuração `prompt_sistemico.cfg` mostrando as instruções exatas da persona do agente.
+- **Métricas em Tempo Real:** Contador de ameaças analisadas, latência de inferência do modelo local e gráfico Doughnut dinâmico (Chart.js) de severidades.
+- **Templates Reais Integrados:** Teste instantâneo de quatro cenários de ataques (SSH Brute Force, SQL Injection, DDoS e Ransomware) com apenas um clique.
 
 ---
 
@@ -143,11 +215,10 @@ Acesse `http://localhost` no navegador.
 
 ---
 
-### 🔄 Utilizando seu modelo fine-tune do Colab
+### 🔄 Utilizando Modelos GGUF Customizados
 
-Se você executou o notebook de fine-tuning no Google Colab e obteve o seu próprio modelo personalizado:
-1. Feche o servidor (pressione `Ctrl + C` no terminal do Python ou execute `docker-compose down` se usou o Docker).
-2. Pegue o arquivo `.gguf` gerado no Colab e renomeie-o para **`model.gguf`**.
-3. Mova/substitua o arquivo antigo na pasta local: **`backend/models/model.gguf`**.
-4. Inicie o sistema novamente (dando duplo clique em `start_local.bat` ou `setup.bat`). O CyberSentinel usará imediatamente a sua IA ajustada!
-
+Se você desejar experimentar outros modelos ou arquiteturas quantizadas no formato `.gguf`:
+1. Interrompa a execução do backend (pressione `Ctrl + C` no terminal do uvicorn).
+2. Coloque seu arquivo GGUF na pasta: `backend/models/`.
+3. Renomeie o arquivo para **`qwen_nativo.gguf`** (ou ajuste os caminhos mapeados em [app.py](file:///C:/Users/SnyX/antigravity/proud-noether/backend/app.py) para que ele o encontre).
+4. Inicialize o servidor novamente. O CyberSentinel carregará o novo modelo automaticamente no início!

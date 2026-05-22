@@ -444,7 +444,7 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
 
         if (!isCompareMode) {
             // === MODO INDIVIDUAL ===
-            const result = await streamModel('finetuned', {
+            const result = await streamModel('com_prompt', {
                 container: thinkingContainer,
                 content: thinkingContent,
                 status: thinkingStatusText,
@@ -482,13 +482,14 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
                 execTag: executionTagFinetuned
             };
 
-            // Executa requisições de forma concorrente em background
+            // Executa requisições de forma concorrente em background:
+            // nativoElements rodando SEM prompt, finetunedElements rodando COM prompt.
             const [nativoRes, finetunedRes] = await Promise.all([
-                streamModel('nativo', nativoElements, logContent, orgContext, baseUrl),
-                streamModel('finetuned', finetunedElements, logContent, orgContext, baseUrl)
+                streamModel('sem_prompt', nativoElements, logContent, orgContext, baseUrl),
+                streamModel('com_prompt', finetunedElements, logContent, orgContext, baseUrl)
             ]);
 
-            // Atualiza métricas gerais baseando-se no modelo CyberSentinel
+            // Atualiza métricas gerais baseando-se no modelo com Prompt
             if (finetunedRes.success) {
                 detectAndAddSeverity(finetunedRes.fullText);
                 totalAnalyzed++;
@@ -562,11 +563,258 @@ Criação do arquivo: 'HOW_TO_DECRYPT.txt' contendo instrução de pagamento em 
         aboutModal.classList.add('hidden');
     });
 
+    // Modal do Prompt do Sistema
+    const btnShowPrompt = document.getElementById('btn-show-prompt');
+    const promptModal = document.getElementById('prompt-modal');
+    const closePromptModal = document.getElementById('close-prompt-modal');
+    const promptCodeContent = document.getElementById('prompt-code-content');
+
+    btnShowPrompt.addEventListener('click', async (e) => {
+        e.preventDefault();
+        promptModal.classList.remove('hidden');
+        const baseUrl = apiUrlInput.value.trim();
+        promptCodeContent.textContent = "Carregando prompt do sistema do backend...";
+        try {
+            const res = await fetch(`${baseUrl}/prompt`);
+            if (res.ok) {
+                const data = await res.json();
+                promptCodeContent.textContent = data.system_prompt;
+            } else {
+                promptCodeContent.textContent = "Erro ao carregar o prompt do sistema do backend.";
+            }
+        } catch (err) {
+            promptCodeContent.textContent = "Erro de conexão ao buscar o prompt: " + err.message;
+        }
+    });
+
+    closePromptModal.addEventListener('click', () => {
+        promptModal.classList.add('hidden');
+    });
+
     window.addEventListener('click', (e) => {
         if (e.target === aboutModal) {
             aboutModal.classList.add('hidden');
         }
+        if (e.target === promptModal) {
+            promptModal.classList.add('hidden');
+        }
     });
+
+    // === ELEMENTOS DO GUIA VISUAL (TOUR) ===
+    const btnStartTour = document.getElementById('btn-start-tour');
+    const btnPlaceholderTour = document.getElementById('btn-placeholder-tour');
+    const tourBackdrop = document.getElementById('tour-backdrop');
+    const tourCard = document.getElementById('tour-card');
+    const tourStepIndicator = document.getElementById('tour-step-indicator');
+    const tourStepTitle = document.getElementById('tour-step-title');
+    const tourStepDesc = document.getElementById('tour-step-desc');
+    const btnTourPrev = document.getElementById('btn-tour-prev');
+    const btnTourNext = document.getElementById('btn-tour-next');
+    const btnCloseTour = document.getElementById('btn-close-tour');
+
+    let currentTourStep = 0;
+    let isTourActive = false;
+
+    const sampleMarkdown = `## 🔴 Classificação da Ameaça
+**Tipo de Ataque:** Força Bruta via SSH (SSH Brute Force)
+**Severidade:** CRITICAL (Crítica)
+**Análise:** O IP 185.220.101.42 efetuou 6 tentativas malsucedidas de login em apenas 3 segundos, tentando adivinhar senhas de usuários comuns e do usuário administrador (root).
+
+## 🎯 Mapeamento MITRE ATT&CK
+* **Tática:** Acesso a Credenciais (TA0006)
+* **Técnica:** Força Bruta (T1110)
+* **Subtécnica:** Password Guessing (T1110.001)
+
+## 🛡️ Análise de Impacto (CIA)
+* **Confidencialidade (High/Alta):** Risco crítico se o atacante obtiver uma senha válida, expondo dados internos e arquivos de clientes.
+* **Integridade (Medium/Média):** Risco de adulteração de arquivos de sistema e banco de dados após a invasão.
+* **Disponibilidade (Medium/Média):** Possibilidade de parada dos serviços SSH ou queda do servidor por sobrecarga.
+
+## 📋 Plano de Resposta e Mitigação
+1. **Contenção:** Adicionar o IP \`185.220.101.42\` na lista de bloqueios (iptables / firewall).
+2. **Erradicação:** Desabilitar logins SSH diretos do usuário \`root\` no arquivo \`sshd_config\`.
+3. **Recuperação:** Monitorar logs de autenticação e garantir o uso de autenticação por chaves públicas/privadas (sem senha).`;
+
+    const tourSteps = [
+        {
+            target: '#analysis-form',
+            title: '1. Entrada de Dados (Log & Contexto)',
+            desc: 'Aqui você insere os logs brutos que deseja analisar e fornece o contexto operacional da empresa (ex: se o servidor abriga dados confidenciais ou é de produção).'
+        },
+        {
+            target: '#btn-compare-toggle',
+            title: '2. Comparador de Prompting',
+            desc: 'Use o botão COMPARAÇÃO para alternar para o modo Lado a Lado. Isso permite comparar o mesmo modelo de IA rodando SEM prompt de sistema (resposta genérica) versus rodando COM prompt de sistema (parecer estruturado).'
+        },
+        {
+            target: '#thinking-container',
+            title: '3. Processo de Raciocínio (Thinking)',
+            desc: 'O CyberSentinel inicia gerando uma etapa interna de raciocínio. Isso garante que a IA analise a situação passo a passo antes de formular o parecer de segurança.'
+        },
+        {
+            target: 'h2-classificacao',
+            title: '4. Classificação da Ameaça',
+            desc: 'A primeira seção identifica o tipo exato de ataque (ex: SQL Injection, Brute Force) e a severidade (CRITICAL, HIGH, MEDIUM, LOW), servindo de triagem imediata para o time de TI.'
+        },
+        {
+            target: 'h2-mitre',
+            title: '5. Mapeamento MITRE ATT&CK',
+            desc: 'Esta seção faz o mapeamento do ataque para as táticas e técnicas oficiais da matriz MITRE ATT&CK (ex: T1110 - Brute Force). Isso ajuda a equipe a entender a metodologia da invasão.'
+        },
+        {
+            target: 'h2-cia',
+            title: '6. Análise de Impacto (CIA)',
+            desc: 'Avalia o impacto potencial na Confidencialidade (C), Integridade (I) e Disponibilidade (A) do ativo afetado, auxiliando na priorização do incidente.'
+        },
+        {
+            target: 'h2-mitigacao',
+            title: '7. Plano de Mitigação e Resposta',
+            desc: 'Traz ações práticas divididas em Contenção (parar o ataque), Erradicação (remover a ameaça) e Recuperação (restaurar o estado normal), com comandos prontos para execução.'
+        }
+    ];
+
+    function startTour() {
+        isTourActive = true;
+        currentTourStep = 0;
+        
+        // Desativa modo comparativo para focar na explicação do parecer
+        if (isCompareMode) {
+            btnCompareToggle.click();
+        }
+        
+        // Mostra o backdrop e o card do tour
+        tourBackdrop.classList.remove('hidden');
+        tourCard.classList.remove('hidden');
+        
+        // Popula o resultado com os dados de exemplo para que o usuário veja
+        outputPlaceholder.classList.add('hidden');
+        thinkingContainer.classList.remove('hidden');
+        thinkingContainer.classList.add('active');
+        thinkingContent.textContent = `Detectando 6 tentativas de login SSH falhas em 3 segundos vindas do IP 185.220.101.42...\nIdentificando padrão de Brute Force contra usuários padrão e root...\nMapeando para técnica T1110 do MITRE ATT&CK...\nDefinindo severidade como CRITICAL devido ao ambiente de e-commerce.`;
+        thinkingStatusText.textContent = 'Raciocínio da IA: Concluído (Clique para expandir)';
+        outputContent.classList.remove('hidden');
+        outputContent.innerHTML = marked.parse(sampleMarkdown);
+        btnCopyReport.classList.remove('hidden');
+        executionTag.classList.remove('hidden');
+        executionTag.textContent = "12.35s";
+        
+        showTourStep(0);
+    }
+
+    function showTourStep(stepIdx) {
+        // Remove highlight anterior
+        const prevHighlight = document.querySelector('.tour-highlight');
+        if (prevHighlight) {
+            prevHighlight.classList.remove('tour-highlight');
+        }
+        
+        const step = tourSteps[stepIdx];
+        tourStepIndicator.textContent = `[PASSO ${stepIdx + 1} DE ${tourSteps.length}]`;
+        tourStepTitle.textContent = step.title;
+        tourStepDesc.textContent = step.desc;
+        
+        // Atualiza botões
+        if (stepIdx === 0) {
+            btnTourPrev.disabled = true;
+            btnTourPrev.style.opacity = 0.5;
+        } else {
+            btnTourPrev.disabled = false;
+            btnTourPrev.style.opacity = 1;
+        }
+        
+        if (stepIdx === tourSteps.length - 1) {
+            btnTourNext.innerHTML = 'Concluir <i class="fa-solid fa-check"></i>';
+        } else {
+            btnTourNext.innerHTML = 'Próximo <i class="fa-solid fa-chevron-right"></i>';
+        }
+        
+        // Encontra e destaca o elemento alvo
+        let targetEl = null;
+        if (step.target.startsWith('#')) {
+            targetEl = document.querySelector(step.target);
+        } else {
+            // Alvos dinâmicos no markdown renderizado
+            const headings = Array.from(outputContent.querySelectorAll('h2'));
+            if (step.target === 'h2-classificacao') {
+                targetEl = headings.find(h => h.textContent.includes('Classificação'));
+            } else if (step.target === 'h2-mitre') {
+                targetEl = headings.find(h => h.textContent.includes('MITRE') || h.textContent.includes('Mapeamento'));
+            } else if (step.target === 'h2-cia') {
+                targetEl = headings.find(h => h.textContent.includes('Impacto') || h.textContent.includes('CIA'));
+            } else if (step.target === 'h2-mitigacao') {
+                targetEl = headings.find(h => h.textContent.includes('Mitigação') || h.textContent.includes('Plano'));
+            }
+        }
+        
+        if (targetEl) {
+            targetEl.classList.add('tour-highlight');
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Posiciona a tour card perto do elemento destacado
+            setTimeout(() => {
+                const rect = targetEl.getBoundingClientRect();
+                const cardWidth = 340;
+                
+                // Posição padrão abaixo do elemento
+                let top = window.scrollY + rect.bottom + 15;
+                let left = window.scrollX + rect.left;
+                
+                // Se for muito embaixo, coloca em cima
+                if (rect.bottom + 220 > window.innerHeight) {
+                    top = window.scrollY + rect.top - 200;
+                }
+                
+                // Evita estourar laterais
+                if (left + cardWidth > window.innerWidth) {
+                    left = window.innerWidth - cardWidth - 20;
+                }
+                if (left < 10) left = 10;
+                if (top < 10) top = 10;
+                
+                tourCard.style.top = `${top}px`;
+                tourCard.style.left = `${left}px`;
+            }, 150);
+        } else {
+            // Fallback: centraliza a tour card
+            tourCard.style.top = '50%';
+            tourCard.style.left = '50%';
+            tourCard.style.transform = 'translate(-50%, -50%)';
+        }
+    }
+
+    function endTour() {
+        isTourActive = false;
+        tourBackdrop.classList.add('hidden');
+        tourCard.classList.add('hidden');
+        
+        const highlight = document.querySelector('.tour-highlight');
+        if (highlight) {
+            highlight.classList.remove('tour-highlight');
+        }
+        tourCard.style.transform = 'none';
+    }
+
+    // Registra listeners do Tour
+    btnStartTour.addEventListener('click', startTour);
+    if (btnPlaceholderTour) {
+        btnPlaceholderTour.addEventListener('click', startTour);
+    }
+    btnTourPrev.addEventListener('click', () => {
+        if (currentTourStep > 0) {
+            currentTourStep--;
+            showTourStep(currentTourStep);
+        }
+    });
+    btnTourNext.addEventListener('click', () => {
+        if (currentTourStep < tourSteps.length - 1) {
+            currentTourStep++;
+            showTourStep(currentTourStep);
+        } else {
+            endTour();
+        }
+    });
+    btnCloseTour.addEventListener('click', endTour);
+    tourBackdrop.addEventListener('click', endTour);
 
     // Inicializa o painel gráfico
     initChart();

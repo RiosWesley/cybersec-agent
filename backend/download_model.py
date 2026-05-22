@@ -14,10 +14,10 @@ def download_cybersec_model():
     # 1. Trata migração do arquivo legado
     if os.path.exists(legacy_path):
         print(f"[CyberSentinel Setup] Detectado modelo legado em: {legacy_path}")
-        if not os.path.exists(finetuned_path):
-            print(f"[CyberSentinel Setup] Copiando modelo legado para o caminho do fine-tuned: {finetuned_path}")
+        if not os.path.exists(nativo_path):
+            print(f"[CyberSentinel Setup] Copiando modelo legado para o caminho do modelo nativo: {nativo_path}")
             try:
-                shutil.copy(legacy_path, finetuned_path)
+                shutil.copy(legacy_path, nativo_path)
             except Exception as e:
                 print(f"[Aviso] Não foi possível copiar: {e}")
             
@@ -42,17 +42,6 @@ def download_cybersec_model():
         except Exception as e:
             print(f"\n[ERRO] Falha ao baixar o modelo nativo: {e}", file=sys.stderr)
             print("[AVISO] Certifique-se de ter conexão com a internet.", file=sys.stderr)
-            
-    # 3. Se ainda não houver o modelo fine-tuned, usa o nativo como cópia temporária de demonstração
-    if not os.path.exists(finetuned_path):
-        if os.path.exists(nativo_path):
-            print("[CyberSentinel Setup] Nenhuma versão fine-tuned encontrada em qwen_finetuned.gguf.")
-            print("[CyberSentinel Setup] Criando cópia temporária do modelo nativo para demonstração lado a lado...")
-            try:
-                shutil.copy(nativo_path, finetuned_path)
-                print(f"[CyberSentinel Setup] Cópia criada com sucesso em: {finetuned_path}")
-            except Exception as e:
-                print(f"[ERRO] Falha ao criar cópia: {e}")
 
 if __name__ == "__main__":
     download_cybersec_model()
