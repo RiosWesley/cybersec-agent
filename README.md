@@ -1,3 +1,4 @@
+# Alunos: Álex Rios e Wesley Rios
 # 🛡️ CyberSentinel — Analista SOC Virtual Especialista em Cibersegurança
 
 Este projeto apresenta a proposta conceitual e a implementação funcional de um **Agente Inteligente Especialista** treinado para atuar no domínio de cibersegurança como um Analista SOC (Security Operations Center) Virtual.
